@@ -1,0 +1,9 @@
+exp,success,limit,step_count,info,simulation_output_path
+7,False,100000,38,"('PolicyTask', 'ur5_robotiq', 'ur5_robotiq')",simulation_2026-01-20_15-21-49/simulation_972.pkl
+4,False,100000,99,"('PolicyTask', 'ur5_robotiq', 'toteA_large')",simulation_2026-01-20_15-21-49/simulation_536.pkl
+5,False,100000,198,"('PolicyTask', 'ur5_robotiq', 'toteA_large')",simulation_2026-01-20_15-21-49/simulation_238.pkl
+1,False,100000,230,"('PolicyTask', 'ur5_robotiq', 'toteA_large')",simulation_2026-01-20_15-21-49/simulation_927.pkl
+2,False,100000,742,"('PolicyTask', 'ur5_robotiq', 'power_drill')",simulation_2026-01-20_15-21-49/simulation_866.pkl
+54,False,100000,42,"('PolicyTask', 'ur5_robotiq', 'toteA_large')",simulation_2026-01-20_15-21-49/simulation_619.pkl
+82,False,100000,5,"('PolicyTask', 'ur5_robotiq', 'toteA_large')",simulation_2026-01-20_15-21-49/simulation_484.pkl
+116,False,100000,125,"('PolicyTask', 'ur5_robotiq', 'toteA_large')",simulation_2026-01-20_15-21-49/simulation_157.pkl
