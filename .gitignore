@@ -2,6 +2,8 @@ benchmark/
 ours/
 tasks_/
 tasks/
+experts/
+train_info/
 
 .vscode/
 .vim/
