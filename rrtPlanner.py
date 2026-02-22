@@ -1,13 +1,19 @@
 import ray
 import numpy as np
-from pathlib import Path
 from environment.rrt import RRTWrapper
 from environment.tasks import Task
-from os.path import exists
-from os import makedirs
 from tqdm import tqdm
 import json
 import sys
+import os
+
+def iter_json_files(root):
+    with os.scandir(root) as it:
+        for entry in it:
+            if entry.is_dir(follow_symlinks=False):
+                yield from iter_json_files(entry.path)
+            elif entry.name.endswith('.json'):
+                yield entry.path
 
 
 def dump_json(dics, filename):
@@ -57,8 +63,8 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
     
     # Create output directory if needed
     for dir in [experts_dir, target_dir, 'logs/']:
-        if not exists(dir):
-            makedirs(dir)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
 
     logs = {
         "stats":{
@@ -76,16 +82,13 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
         except: 
             pass
        
-    print(logs)
     
     
     # Process each task
-    for task_file in Path(tasks_dir).rglob('*.json'):
-
-        filename = task_file.name
+    for task_file in iter_json_files(tasks_dir):
+        filename = os.path.basename(task_file)
 
         if filename in logs["runs"].keys():
-            print("loaded", filename)
             continue
 
         
@@ -187,7 +190,7 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
     
     # Cleanup
     ray.shutdown()
-    print("\nDone!")
+    print("Done!")
 
 if __name__ == "__main__":
     # Generate experts for all tasks
