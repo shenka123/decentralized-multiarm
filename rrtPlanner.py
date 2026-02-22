@@ -1,6 +1,5 @@
 import ray
 import numpy as np
-from json import load
 from pathlib import Path
 from environment.rrt import RRTWrapper
 from environment.tasks import Task
@@ -8,17 +7,17 @@ from os.path import exists
 from os import makedirs
 from tqdm import tqdm
 import json
+import sys
 
 
-
-def generate_expert_demonstrations(tasks_dir='tasks/', output_dir='tasks_expert/', config_file='', gui=False):
+def generate_expert_demonstrations(run_name='', config_file='', gui=False):
     """
-    Generate RRT expert waypoints for all tasks in a directory
+    Generate RRT expert waypoints for all tasks in a directory 
+    Tasks located in tasks/{run_name}/
+    Experts output in experts/{run_name}/
+    Training logs saved in logs/birrt_{run_name}.json
     
-    Args:
-        tasks_dir: Directory containing task JSON files
-        output_dir: Directory to save expert waypoints
-        gui: Whether to visualize RRT (slow, use False for batch processing)
+    gui: Whether to visualize RRT (slow, use False for batch processing)
     """
     
     # Initialize Ray
@@ -30,6 +29,9 @@ def generate_expert_demonstrations(tasks_dir='tasks/', output_dir='tasks_expert/
     with open(config_file) as f:
         env_config = json.load(f)['environment']
     
+    tasks_dir = f'tasks/{run_name}/'
+    output_dir = f'experts/{run_name}/'
+
     # Create RRT wrapper
     print("Creating RRT wrapper...")
     rrt_wrapper = RRTWrapper.remote(
@@ -56,7 +58,7 @@ def generate_expert_demonstrations(tasks_dir='tasks/', output_dir='tasks_expert/
         
         try:
             # Load task data
-            task_data = load(open(task_file))
+            task_data = json.load(open(task_file))
             #print(task_data)
             
             # Create Task object
@@ -117,8 +119,7 @@ if __name__ == "__main__":
     # Generate experts for all tasks
     
     generate_expert_demonstrations(
-        tasks_dir='task_sphere_test/',
-        output_dir='tasks_sphere_test_experts/',
+        run_name=sys.argv[1],
         config_file='configs/RRTconfig.json',
         gui=True  # Set to True to visualize (much slower)
     )

@@ -3,7 +3,7 @@ ours/
 tasks_/
 tasks/
 experts/
-train_info/
+logs/
 
 .vscode/
 .vim/
@@ -139,3 +139,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Test files
+test/
+test.py
