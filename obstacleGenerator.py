@@ -88,8 +88,12 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
     for task_file in iter_json_files(tasks_dir):
         filename = os.path.basename(task_file)
 
+        attempt = 1
+
         if filename in logs["runs"].keys():
-            continue
+            status, attempt = logs["runs"][filename].split(":")
+            if status in ["failed", "success", "error"]:
+                continue
 
         
         try:
@@ -97,7 +101,6 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
             with open(task_file) as f:
                 task_data = json.load(f)
             
-            attempt = 1
             obstacles_count = int(np.random.choice(np.arange(0,6), p=[.05, .3, .3, .2, .1, .05]))
 
             while True:
@@ -137,7 +140,10 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
                     task_path=str(task_file)
                 )
                 
-        
+                logs["runs"][filename] = f"running:{attempt}"
+                dump_json(logs, logs_file)
+
+
                 # Generate expert waypoints using RRT
                 waypoints = ray.get(rrt_wrapper.birrt_from_task.remote(task))
                 
