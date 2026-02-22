@@ -195,7 +195,7 @@ if __name__ == "__main__":
     generate_expert_demonstrations(
         task_name=sys.argv[1],
         target_name=sys.argv[2],
-        reset=True,
+        reset=False,
         config_file='configs/RRTconfig.json',
         gui=False
     )
