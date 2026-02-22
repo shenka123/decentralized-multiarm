@@ -38,7 +38,7 @@
     "environment": {
         "action_type": "delta",
         "min_ur5s_count": 1,
-        "max_ur5s_count": 4,
+        "max_ur5s_count": 10,
         "obstacles": {
             "s1": {
                 "type": "Sphere",

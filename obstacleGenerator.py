@@ -51,6 +51,7 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
     
     tasks_dir = f'tasks/{task_name}/'
     target_dir = f'tasks/{target_name}/'
+    failed_dir = f'tasks/{target_name}_failed/'
     experts_dir = f'experts/{target_name}/'
     logs_file = f'logs/birrt_{target_name}.json'
 
@@ -62,7 +63,7 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
     )
     
     # Create output directory if needed
-    for dir in [experts_dir, target_dir, 'logs/']:
+    for dir in [experts_dir, target_dir, failed_dir, 'logs/']:
         if not os.path.exists(dir):
             os.makedirs(dir)
 
@@ -93,8 +94,12 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
 
         if filename in logs["runs"].keys():
             status, attempt = logs["runs"][filename].split(":")
-            if status in ["failed", "success", "error"]:
+            if status == "success":
                 continue
+            elif status in ["failed",  "error"]:
+                attempt = 1
+            elif status == "running":
+                pass
 
         
         try:
@@ -147,7 +152,7 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
 
                 # Generate expert waypoints using RRT
 
-                waypoints = ray.get(rrt_wrapper.birrt_from_task.remote(task, timeout=timeout[attempt]))
+                waypoints = ray.get(rrt_wrapper.birrt_from_task.remote(task))
                 
                 if waypoints is not None and len(waypoints) > 0:
 
@@ -191,6 +196,8 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
             logs["stats"]["processed"]+=1
             logs["stats"]["errors"]+=1
             dump_json(logs, logs_file)
+
+            dump_json(task_data, failed_dir)
 
     
     # Cleanup
