@@ -10,15 +10,28 @@ import json
 import sys
 
 
-def generate_expert_demonstrations(run_name='', config_file='', gui=False):
+def dump_json(dics, filename):
+    with open(filename, "w") as f:
+        json.dump(dics, f, indent=4)
+
+
+def generate_expert_demonstrations(task_name='', target_name='', config_file='', 
+        reset=False, max_attempts=10, gui=False):
+
     """
-    Generate RRT expert waypoints for all tasks in a directory 
-    Tasks located in tasks/{run_name}/
-    Experts output in experts/{run_name}/
-    Training logs saved in logs/birrt_{run_name}.json
+    Generate obstacles and its RRT expert waypoints for all tasks in a directory 
     
+    Tasks input located in tasks/{task_name}/
+    Tasks with generated obstacles output in tasks/{target_name}/
+    Experts output in experts/{target_name}/
+    Training logs saved in logs/birrt_{target_name}.json
+    
+    reset: Whether to generate from scratch (True) or continue from logs (False)
+    max_attempts: set attempts to generate obstacles
     gui: Whether to visualize RRT (slow, use False for batch processing)
     """
+
+
     
     # Initialize Ray
     print("Initializing Ray...")
@@ -28,9 +41,12 @@ def generate_expert_demonstrations(run_name='', config_file='', gui=False):
     
     with open(config_file) as f:
         env_config = json.load(f)['environment']
+        obs_config = env_config['obstacles']
     
-    tasks_dir = f'tasks/{run_name}/'
-    output_dir = f'experts/{run_name}/'
+    tasks_dir = f'tasks/{task_name}/'
+    target_dir = f'tasks/{target_name}/'
+    experts_dir = f'experts/{target_name}/'
+    logs_file = f'logs/birrt_{target_name}.json'
 
     # Create RRT wrapper
     print("Creating RRT wrapper...")
@@ -40,27 +56,76 @@ def generate_expert_demonstrations(run_name='', config_file='', gui=False):
     )
     
     # Create output directory if needed
-    if not exists(output_dir):
-        makedirs(output_dir)
-        print(f"Created output directory: {output_dir}")
-    
+    for dir in [experts_dir, target_dir, 'logs/']:
+        if not exists(dir):
+            makedirs(dir)
+
     # Get all task JSON files
     task_files = list(Path(tasks_dir).rglob('*.json'))
     print(f"Found {len(task_files)} task files")
+
+
+    logs = {
+        "stats":{
+            "files":len(task_files),
+            "processed":0,
+            "success":0,
+            "failed":0,
+            "errors":0
+        },
+        "runs":{}
+    }
     
-    # Track statistics
-    successful = 0
-    failed = 0
-    failed_tasks = []
+    if not reset:
+        try: 
+            logs = json.load(open(logs_file))
+        except: 
+            pass
+       
+    print(logs)
+    
     
     # Process each task
     for task_file in tqdm(task_files, desc="Generating expert waypoints"):
+
+        filename = task_file.name
+
+        if filename in logs["runs"].keys():
+            print("loaded", filename)
+            continue
+
         
-        try:
-            # Load task data
-            task_data = json.load(open(task_file))
-            #print(task_data)
+        #try:
+        # Load task data
+        task_data = json.load(open(task_file))
+        
+        attempt = 1
+        obstacles_count = int(np.random.choice(np.arange(0,6), p=[.05, .3, .3, .2, .1, .05]))
+
+        while True:
+
+            # create obstacles config
             
+            obstacles = {}
+            for obs in list(obs_config)[:obstacles_count]:
+                # random select 1 robot base poses
+                base_poses = [b[0] for b in task_data['base_poses']]
+                base = base_poses[np.random.randint(0, len(base_poses))]
+
+                # offset in 3D polar coordinates (r, a, b)
+                r = np.random.uniform(0.2, 0.7)
+                a = np.random.uniform(0, 2*np.pi)
+                b = np.random.uniform(0, np.pi)
+                offset = [
+                    r*np.cos(a)*np.cos(b),
+                    r*np.sin(a)*np.cos(b),
+                    r*np.sin(b)
+                ]
+
+                # set obstacle coordinate
+                obstacles[obs] = [base[i] + offset[i] for i in range(3)]
+
+
             # Create Task object
             task = Task(
                 target_eff_poses=task_data['target_eff_poses'],
@@ -68,48 +133,62 @@ def generate_expert_demonstrations(run_name='', config_file='', gui=False):
                 start_config=task_data['start_config'],
                 goal_config=task_data['goal_config'],
                 start_goal_config=task_data.get('goal_config'),
-                obstacles=task_data.get('obstacles'),
+                obstacles=obstacles,
                 difficulty=task_data.get('difficulty', 0.0),
                 dynamic_speed=task_data.get('dynamic_speed'),
                 task_path=str(task_file)
             )
             
-            
+    
             # Generate expert waypoints using RRT
-            #print("=============================", task_data['goal_config'])
             waypoints = ray.get(rrt_wrapper.birrt_from_task.remote(task))
-
-            print("")
             
             if waypoints is not None and len(waypoints) > 0:
+
+                # Save modified task
+                task_data['obstacles'] = obstacles
+                task_data['obstacles_count'] = obstacles_count
+
+                dump_json(task_data, target_dir + filename)
+
+
                 # Save waypoints
-                output_path = f'{output_dir}/{task.id}.npy'
+                output_path = f'{experts_dir}/{task.id}.npy'
                 np.save(output_path, waypoints)
-                successful += 1
-            else:
-                failed += 1
-                failed_tasks.append(task.id)
-                print(f"\n✗ RRT failed for task {task.id}")
                 
-        except Exception as e:
-            failed += 1
-            task_id = task_file.stem
-            failed_tasks.append(task_id)
-            print(f"\n✗ Error processing {task_file}: {e}")
+                # Save logs
+                logs["runs"][filename] = f"success:{attempt}"
+                logs["stats"]["processed"]+=1
+                logs["stats"]["success"]+=1
+
+                dump_json(logs, logs_file)
+                
+                break
+            
+            else:  
+
+                if attempt == max_attempts:
+                    # Save logs
+                    logs["runs"][filename] = f"failed:{attempt}"
+                    logs["stats"]["processed"]+=1
+                    logs["stats"]["failed"]+=1
+                    
+                    dump_json(logs, logs_file)
+
+                    break
+
+                attempt+=1
+
+                
+        # except Exception as e:
+        #     logs["runs"][filename] = "error:0"
+        #     logs["stats"]["processed"]+=1
+        #     logs["stats"]["errors"]+=1
+        #     dump_json(logs, logs_file)
+
+        
+
     
-    # Print summary
-    print("\n" + "="*60)
-    print("Expert Generation Summary")
-    print("="*60)
-    print(f"Total tasks: {len(task_files)}")
-    print(f"Successful: {successful}")
-    print(f"Failed: {failed}")
-    print(f"Success rate: {successful/len(task_files)*100:.2f}%")
-    
-    if failed_tasks:
-        print(f"\nFailed tasks: {failed_tasks[:10]}")  # Show first 10
-        if len(failed_tasks) > 10:
-            print(f"... and {len(failed_tasks) - 10} more")
     
     # Cleanup
     ray.shutdown()
@@ -119,7 +198,9 @@ if __name__ == "__main__":
     # Generate experts for all tasks
     
     generate_expert_demonstrations(
-        run_name=sys.argv[1],
+        task_name=sys.argv[1],
+        target_name=sys.argv[2],
+        reset=False,
         config_file='configs/RRTconfig.json',
-        gui=True  # Set to True to visualize (much slower)
+        gui=False
     )

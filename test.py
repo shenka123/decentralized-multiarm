@@ -1,14 +1,35 @@
 import json
+import random
 from pathlib import Path
 
 if __name__ == "__main__":
-    task_files = list(Path('tasks/base_test/').rglob('*.json'))
-    
-    i=0
-    for task_file in task_files:
-        task_data = json.load(open(task_file))
-        task_data['hehe'] = 3
-        with open(f"test/{i}.json", "w") as f:
-            json.dump(task_data, f, indent=4)
-            
-        i+=1
+    a = [
+        [
+            [
+                0.2098212592404891,
+                -0.07120435166148442,
+                0.0
+            ],
+            [
+                -0.0,
+                -0.0,
+                0.3805772857009801,
+                0.9247491171168938
+            ]
+        ],
+        [
+            [
+                0.15559115539702761,
+                0.6388380180886271,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.9364995013622999,
+                -0.3506689092978784
+            ]
+        ]
+    ]
+    b = [k[0] for k in a]
+    print(b)
