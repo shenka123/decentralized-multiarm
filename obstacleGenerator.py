@@ -83,6 +83,7 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
             pass
        
     
+    timeout = [5*i+5 for i in range(max_attempts)]
     
     # Process each task
     for task_file in iter_json_files(tasks_dir):
@@ -145,7 +146,8 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
 
 
                 # Generate expert waypoints using RRT
-                waypoints = ray.get(rrt_wrapper.birrt_from_task.remote(task))
+
+                waypoints = ray.get(rrt_wrapper.birrt_from_task.remote(task, timeout=timeout[attempt]))
                 
                 if waypoints is not None and len(waypoints) > 0:
 
