@@ -51,13 +51,14 @@ class RRTWrapper:
     def set_actor_handle(self, actor_handle):
         self.actor_handle = actor_handle
 
-    def birrt_from_task(self, task):
+    def birrt_from_task(self, task, timeout=90):
         return self.birrt(
             start_conf=task.start_config,
             goal_conf=task.start_goal_config,
             ur5_poses=task.base_poses,
             target_eff_poses=task.target_eff_poses,
-            obs_conf=task.obstacles)
+            obs_conf=task.obstacles,
+            timeout=timeout)
 
     def birrt_from_task_with_actor_handle(self, task):
         rv = self.birrt_from_task(task)
