@@ -60,14 +60,8 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
         if not exists(dir):
             makedirs(dir)
 
-    # Get all task JSON files
-    task_files = list(Path(tasks_dir).rglob('*.json'))
-    print(f"Found {len(task_files)} task files")
-
-
     logs = {
         "stats":{
-            "files":len(task_files),
             "processed":0,
             "success":0,
             "failed":0,
@@ -86,7 +80,7 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
     
     
     # Process each task
-    for task_file in tqdm(task_files, desc="Generating expert waypoints"):
+    for task_file in Path(tasks_dir).rglob('*.json'):
 
         filename = task_file.name
 
@@ -95,96 +89,97 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
             continue
 
         
-        #try:
+        try:
         # Load task data
-        task_data = json.load(open(task_file))
+            with open(task_file) as f:
+                task_data = json.load(f)
+            
+            attempt = 1
+            obstacles_count = int(np.random.choice(np.arange(0,6), p=[.05, .3, .3, .2, .1, .05]))
+
+            while True:
+
+                # create obstacles config
+                
+                obstacles = {}
+                for obs in list(obs_config)[:obstacles_count]:
+                    # random select 1 robot base poses
+                    base_poses = [b[0] for b in task_data['base_poses']]
+                    base = base_poses[np.random.randint(0, len(base_poses))]
+
+                    # offset in 3D polar coordinates (r, a, b)
+                    r = np.random.uniform(0.2, 0.7)
+                    a = np.random.uniform(0, 2*np.pi)
+                    b = np.random.uniform(0, np.pi)
+                    offset = [
+                        r*np.cos(a)*np.cos(b),
+                        r*np.sin(a)*np.cos(b),
+                        r*np.sin(b)
+                    ]
+
+                    # set obstacle coordinate
+                    obstacles[obs] = [base[i] + offset[i] for i in range(3)]
+
+
+                # Create Task object
+                task = Task(
+                    target_eff_poses=task_data['target_eff_poses'],
+                    base_poses=task_data['base_poses'],
+                    start_config=task_data['start_config'],
+                    goal_config=task_data['goal_config'],
+                    start_goal_config=task_data.get('goal_config'),
+                    obstacles=obstacles,
+                    difficulty=task_data.get('difficulty', 0.0),
+                    dynamic_speed=task_data.get('dynamic_speed'),
+                    task_path=str(task_file)
+                )
+                
         
-        attempt = 1
-        obstacles_count = int(np.random.choice(np.arange(0,6), p=[.05, .3, .3, .2, .1, .05]))
-
-        while True:
-
-            # create obstacles config
-            
-            obstacles = {}
-            for obs in list(obs_config)[:obstacles_count]:
-                # random select 1 robot base poses
-                base_poses = [b[0] for b in task_data['base_poses']]
-                base = base_poses[np.random.randint(0, len(base_poses))]
-
-                # offset in 3D polar coordinates (r, a, b)
-                r = np.random.uniform(0.2, 0.7)
-                a = np.random.uniform(0, 2*np.pi)
-                b = np.random.uniform(0, np.pi)
-                offset = [
-                    r*np.cos(a)*np.cos(b),
-                    r*np.sin(a)*np.cos(b),
-                    r*np.sin(b)
-                ]
-
-                # set obstacle coordinate
-                obstacles[obs] = [base[i] + offset[i] for i in range(3)]
-
-
-            # Create Task object
-            task = Task(
-                target_eff_poses=task_data['target_eff_poses'],
-                base_poses=task_data['base_poses'],
-                start_config=task_data['start_config'],
-                goal_config=task_data['goal_config'],
-                start_goal_config=task_data.get('goal_config'),
-                obstacles=obstacles,
-                difficulty=task_data.get('difficulty', 0.0),
-                dynamic_speed=task_data.get('dynamic_speed'),
-                task_path=str(task_file)
-            )
-            
-    
-            # Generate expert waypoints using RRT
-            waypoints = ray.get(rrt_wrapper.birrt_from_task.remote(task))
-            
-            if waypoints is not None and len(waypoints) > 0:
-
-                # Save modified task
-                task_data['obstacles'] = obstacles
-                task_data['obstacles_count'] = obstacles_count
-
-                dump_json(task_data, target_dir + filename)
-
-
-                # Save waypoints
-                output_path = f'{experts_dir}/{task.id}.npy'
-                np.save(output_path, waypoints)
+                # Generate expert waypoints using RRT
+                waypoints = ray.get(rrt_wrapper.birrt_from_task.remote(task))
                 
-                # Save logs
-                logs["runs"][filename] = f"success:{attempt}"
-                logs["stats"]["processed"]+=1
-                logs["stats"]["success"]+=1
+                if waypoints is not None and len(waypoints) > 0:
 
-                dump_json(logs, logs_file)
-                
-                break
-            
-            else:  
+                    # Save modified task
+                    task_data['obstacles'] = obstacles
+                    task_data['obstacles_count'] = obstacles_count
 
-                if attempt == max_attempts:
-                    # Save logs
-                    logs["runs"][filename] = f"failed:{attempt}"
-                    logs["stats"]["processed"]+=1
-                    logs["stats"]["failed"]+=1
+                    dump_json(task_data, target_dir + filename)
+
+
+                    # Save waypoints
+                    output_path = f'{experts_dir}/{task.id}.npy'
+                    np.save(output_path, waypoints)
                     
+                    # Save logs
+                    logs["runs"][filename] = f"success:{attempt}"
+                    logs["stats"]["processed"]+=1
+                    logs["stats"]["success"]+=1
+
                     dump_json(logs, logs_file)
-
+                    
                     break
+                
+                else:  
 
-                attempt+=1
+                    if attempt == max_attempts:
+                        # Save logs
+                        logs["runs"][filename] = f"failed:{attempt}"
+                        logs["stats"]["processed"]+=1
+                        logs["stats"]["failed"]+=1
+                        
+                        dump_json(logs, logs_file)
+
+                        break
+
+                    attempt+=1
 
                 
-        # except Exception as e:
-        #     logs["runs"][filename] = "error:0"
-        #     logs["stats"]["processed"]+=1
-        #     logs["stats"]["errors"]+=1
-        #     dump_json(logs, logs_file)
+        except Exception as e:
+            logs["runs"][filename] = "error:0"
+            logs["stats"]["processed"]+=1
+            logs["stats"]["errors"]+=1
+            dump_json(logs, logs_file)
 
         
 
@@ -200,7 +195,7 @@ if __name__ == "__main__":
     generate_expert_demonstrations(
         task_name=sys.argv[1],
         target_name=sys.argv[2],
-        reset=False,
+        reset=True,
         config_file='configs/RRTconfig.json',
         gui=False
     )
