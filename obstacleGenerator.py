@@ -152,7 +152,7 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
 
                 # Generate expert waypoints using RRT
 
-                waypoints = ray.get(rrt_wrapper.birrt_from_task.remote(task))
+                waypoints = ray.get(rrt_wrapper.birrt_from_task.remote(task, timeout=timeout[attempt]))
                 
                 if waypoints is not None and len(waypoints) > 0:
 
@@ -197,11 +197,12 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
             logs["stats"]["errors"]+=1
             dump_json(logs, logs_file)
 
-            print(f"[{task_file}] {e}")
+            print(f"[{filename}] {e}")
 
             with open(task_file) as f:
                 task_data = json.load(f)
-            dump_json(task_data, failed_dir)
+
+            dump_json(task_data, failed_dir + filename)
 
     
     # Cleanup
