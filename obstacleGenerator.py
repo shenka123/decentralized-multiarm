@@ -197,6 +197,10 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
             logs["stats"]["errors"]+=1
             dump_json(logs, logs_file)
 
+            print(f"[{task_file}] {e}")
+
+            with open(task_file) as f:
+                task_data = json.load(f)
             dump_json(task_data, failed_dir)
 
     
