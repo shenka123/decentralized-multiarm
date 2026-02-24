@@ -2,7 +2,6 @@ import ray
 import numpy as np
 from environment.rrt import RRTWrapper
 from environment.tasks import Task
-from tqdm import tqdm
 import json
 import sys
 import os
@@ -299,6 +298,7 @@ if __name__ == "__main__":
         task_name=sys.argv[1],
         target_name=sys.argv[2],
         reset="reset" in sys.argv,
+        num_workers=int(sys.argv[3]),
         config_file='configs/RRTconfig.json',
         gui=False
     )
