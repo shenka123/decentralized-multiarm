@@ -142,6 +142,8 @@ class BaseEnv:
         self.setup_ur5s(env_config)
         self.setup_obstacles(env_config)
 
+        self.k_nearest_obstacles = training_config.get('k_nearest_obstacles', 0)
+
     def setup_ur5s(self, env_config):
         # Add UR5s
         if env_config['ur5s_position_picker'] == 'evenly_spaced':
@@ -280,6 +282,10 @@ class BaseEnv:
         if self.state['reach_count'] == len(self.active_ur5s):
             self.on_all_ur5s_reach_target()
 
+        self.state['obstacle_positions'] = [
+            obs.get_position() for obs in self.active_obs.values()
+        ]
+
         return self.state
 
     def get_observations(self, state=None, limit=10):
@@ -375,6 +381,39 @@ class BaseEnv:
                             position=state['ur5s'][ur5_idx][key][0],
                             rotation=state['ur5s'][ur5_idx][key][1])))
                            for state in history[-(item['history'] + 1):]]
+                    
+                elif key == 'nearest_obstacles':
+                    # Get EEF position of this arm
+                    eef_pos = np.array(
+                        history[-1]['ur5s'][self.active_ur5s.index(this_ur5)]['end_effector_pose'][0]
+                    )
+                    
+                    # Get all active obstacle positions from latest state
+                    obstacle_positions = history[-1]['obstacle_positions']
+                    
+                    # Sort by distance to this arm's EEF
+                    sorted_obstacles = sorted(
+                        obstacle_positions,
+                        key=lambda p: np.linalg.norm(np.array(p) - eef_pos)
+                    )
+                    
+                    # Take K nearest, pad with sentinel [0, 0, -100] if fewer than K
+                    k = self.k_nearest_obstacles
+                    nearest = sorted_obstacles[:k]
+                    while len(nearest) < k:
+                        nearest.append([0.0, 0.0, -100.0])  # sentinel: far below workspace
+                    
+                    # Express in this arm's local frame and flatten
+                    local_positions = []
+                    for obs_pos in nearest:
+                        local_pos, _ = this_ur5.global_to_ur5_frame(
+                            position=np.array(obs_pos), rotation=None)
+                        local_positions.extend(local_pos)
+                    
+                    # history=0 means just one frame, wrap in list to match expected format
+                    val = [local_positions]
+
+                    
                 else:
                     val = [pose_to_high_freq_pose(this_ur5.global_to_ur5_frame(
                         state['ur5s'][ur5_idx][key]))
