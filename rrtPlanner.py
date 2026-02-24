@@ -117,8 +117,8 @@ if __name__ == "__main__":
     # Generate experts for all tasks
     
     generate_expert_demonstrations(
-        tasks_dir='task_sphere_test/',
-        output_dir='tasks_sphere_test_experts/',
+        tasks_dir='tasks/task_sphere_test/',
+        output_dir='tasks/tasks_sphere_test_experts/',
         config_file='configs/RRTconfig.json',
         gui=True  # Set to True to visualize (much slower)
     )

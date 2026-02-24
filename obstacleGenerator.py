@@ -16,13 +16,77 @@ def iter_json_files(root):
                 yield entry.path
 
 
+def iter_tasks(tasks_dir, logs):
+    """
+    Streaming generator — yields (filename, task_data, task_file) one at a time.
+    Each file is only opened and read when a worker is ready to consume it,
+    so only num_workers task objects ever live in memory at once.
+    Load errors are logged in-place and skipped.
+    """
+    for task_file in iter_json_files(tasks_dir):
+        filename = os.path.basename(task_file)
+        if filename in logs["runs"]:
+            continue
+        try:
+            with open(task_file) as f:
+                task_data = json.load(f)
+            yield filename, task_data, task_file
+        except Exception as e:
+            print(f"[ERROR] Could not load {filename}: {e}")
+            logs["runs"][filename] = "error:0"
+            logs["stats"]["processed"] += 1
+            logs["stats"]["errors"] += 1
+
+
 def dump_json(dics, filename):
     with open(filename, "w") as f:
         json.dump(dics, f, indent=4)
 
 
+def build_obstacles(task_data, obs_config):
+    """Sample a random obstacle configuration for a task."""
+    obstacles_count = int(np.random.choice(np.arange(0, 6), p=[.05, .3, .3, .2, .1, .05]))
+    obstacles = {}
+    for obs in list(obs_config)[:obstacles_count]:
+        base_poses = [b[0] for b in task_data['base_poses']]
+        base = base_poses[np.random.randint(0, len(base_poses))]
+        r = np.random.uniform(0.2, 0.7)
+        a = np.random.uniform(0, 2 * np.pi)
+        b = np.random.uniform(0, np.pi)
+        offset = [
+            r * np.cos(a) * np.cos(b),
+            r * np.sin(a) * np.cos(b),
+            r * np.sin(b)
+        ]
+        obstacles[obs] = [base[i] + offset[i] for i in range(3)]
+    return obstacles, obstacles_count
+
+
+def build_task(task_data, task_file, obstacles):
+    return Task(
+        target_eff_poses=task_data['target_eff_poses'],
+        base_poses=task_data['base_poses'],
+        start_config=task_data['start_config'],
+        goal_config=task_data['goal_config'],
+        start_goal_config=task_data.get('goal_config'),
+        obstacles=obstacles,
+        difficulty=task_data.get('difficulty', 0.0),
+        dynamic_speed=task_data.get('dynamic_speed'),
+        task_path=str(task_file)
+    )
+
+
+def submit_task(worker, task_data, task_file, obs_config, birrt_timeout):
+    """Build obstacles, create task, submit to a specific worker. Returns (future, obstacles, obstacles_count)."""
+    obstacles, obstacles_count = build_obstacles(task_data, obs_config)
+    task = build_task(task_data, task_file, obstacles)
+    future = worker.birrt_from_task.remote(task, timeout=birrt_timeout)
+    return future, obstacles, obstacles_count
+
+
+
 def generate_expert_demonstrations(task_name='', target_name='', config_file='', 
-        reset=False, max_attempts=10, gui=False):
+        reset=False, max_attempts=10, num_workers=10, gui=False):
 
     """
     Generate obstacles and its RRT expert waypoints for all tasks in a directory 
@@ -55,17 +119,8 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
     experts_dir = f'experts/{target_name}/'
     logs_file = f'logs/birrt_{target_name}.json'
 
-    # Create RRT wrapper
-    print("Creating RRT wrapper...")
-    rrt_wrapper = RRTWrapper.remote(
-        env_config=env_config,
-        gui=gui
-    )
-    
-    # Create output directory if needed
-    for dir in [experts_dir, target_dir, failed_dir, 'logs/']:
-        if not os.path.exists(dir):
-            os.makedirs(dir)
+    birrt_timeout = 30
+    done_count = 0
 
     logs = {
         "stats":{
@@ -82,132 +137,160 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
             logs = json.load(open(logs_file))
         except: 
             pass
-       
+
     
-    timeout = [5*i+5 for i in range(max_attempts)]
+    # Create output directory if needed
+    for dir in [experts_dir, target_dir, failed_dir, 'logs/']:
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+
     
-    # Process each task
-    for task_file in iter_json_files(tasks_dir):
-        filename = os.path.basename(task_file)
+    # ── Build pending task queue ───────────────
+    pending = iter_tasks(tasks_dir, logs)
 
-        attempt = 1
+    # ── Create worker pool ────────────────────
+    print(f"Creating {num_workers} RRTWrapper workers...")
+    workers = [
+        RRTWrapper.remote(env_config=env_config, gui=gui)
+        for _ in range(num_workers)
+    ]
 
-        if filename in logs["runs"].keys():
-            status, attempt = logs["runs"][filename].split(":")
-            if status == "success":
-                continue
-            elif status in ["failed",  "error"]:
-                attempt = 1
-            elif status == "running":
-                pass
+    # ── worker_state tracks what each worker is doing ─────────────────────
+    # {
+    #   worker: {
+    #     "future":          ObjectRef,
+    #     "filename":        str,
+    #     "task_data":       dict,
+    #     "task_file":       str,
+    #     "attempt":         int,
+    #     "obstacles":       dict,
+    #     "obstacles_count": int,
+    #   }
+    # }
+    worker_state = {}
 
-        
+    def assign_next_task(worker):
+        """Pull the next pending task and submit it to this worker. Returns True if assigned."""
         try:
-        # Load task data
-            with open(task_file) as f:
-                task_data = json.load(f)
-            
-            obstacles_count = int(np.random.choice(np.arange(0,6), p=[.05, .3, .3, .2, .1, .05]))
+            filename, task_data, task_file = next(pending)
+        except StopIteration:
+            return False   # no more tasks
 
-            while True:
+        future, obstacles, obstacles_count = submit_task(
+            worker, task_data, task_file, obs_config, birrt_timeout)
 
-                # create obstacles config
-                
-                obstacles = {}
-                for obs in list(obs_config)[:obstacles_count]:
-                    # random select 1 robot base poses
-                    base_poses = [b[0] for b in task_data['base_poses']]
-                    base = base_poses[np.random.randint(0, len(base_poses))]
+        worker_state[worker] = {
+            "future":          future,
+            "filename":        filename,
+            "task_data":       task_data,
+            "task_file":       task_file,
+            "attempt":         1,
+            "obstacles":       obstacles,
+            "obstacles_count": obstacles_count,
+        }
+        return True
 
-                    # offset in 3D polar coordinates (r, a, b)
-                    r = np.random.uniform(0.2, 0.7)
-                    a = np.random.uniform(0, 2*np.pi)
-                    b = np.random.uniform(0, np.pi)
-                    offset = [
-                        r*np.cos(a)*np.cos(b),
-                        r*np.sin(a)*np.cos(b),
-                        r*np.sin(b)
-                    ]
+    def retry_same_worker(worker):
+        """Resample obstacles and resubmit the same task on the same worker."""
+        state = worker_state[worker]
+        future, obstacles, obstacles_count = submit_task(
+            worker, state["task_data"], state["task_file"], obs_config, birrt_timeout)
 
-                    # set obstacle coordinate
-                    obstacles[obs] = [base[i] + offset[i] for i in range(3)]
+        state["future"]          = future
+        state["attempt"]        += 1
+        state["obstacles"]       = obstacles
+        state["obstacles_count"] = obstacles_count
+
+    # ── Seed all workers with their first task ─
+    for worker in workers:
+        if not assign_next_task(worker):
+            break   # fewer tasks than workers
 
 
-                # Create Task object
-                task = Task(
-                    target_eff_poses=task_data['target_eff_poses'],
-                    base_poses=task_data['base_poses'],
-                    start_config=task_data['start_config'],
-                    goal_config=task_data['goal_config'],
-                    start_goal_config=task_data.get('goal_config'),
-                    obstacles=obstacles,
-                    difficulty=task_data.get('difficulty', 0.0),
-                    dynamic_speed=task_data.get('dynamic_speed'),
-                    task_path=str(task_file)
-                )
-                
-                logs["runs"][filename] = f"running:{attempt}"
+    # ── Main loop ─────────────────────────────
+    ray_timeout = birrt_timeout + 30   # a little headroom over the internal timeout
+
+    while worker_state:
+        # All active futures
+        all_futures  = [s["future"] for s in worker_state.values()]
+        future_to_worker = {s["future"]: w for w, s in worker_state.items()}
+
+        # Wait for whichever worker finishes first
+        ready, _ = ray.wait(all_futures, num_returns=1, timeout=ray_timeout)
+
+        # ── Timeout: nothing finished in time ─
+        if not ready:
+            # Pick the first worker, treat it as timed-out
+            future = all_futures[0]
+            worker = future_to_worker[future]
+            state  = worker_state[worker]
+            ray.cancel(future, force=True)
+            waypoints = None
+        else:
+            future = ready[0]
+            worker = future_to_worker[future]
+            state  = worker_state[worker]
+            try:
+                waypoints = ray.get(future, timeout=5)   # already done, 5s is plenty
+            except Exception as e:
+                print(f"[ERROR]   {state['filename']}: {e}")
+                logs["runs"][state["filename"]] = "error:0"
+                logs["stats"]["processed"] += 1
+                logs["stats"]["errors"] += 1
+                done_count += 1
                 dump_json(logs, logs_file)
+                del worker_state[worker]
+                assign_next_task(worker)
+                continue
 
+        filename        = state["filename"]
+        task_data       = state["task_data"]
+        task_file       = state["task_file"]
+        attempt         = state["attempt"]
+        obstacles       = state["obstacles"]
+        obstacles_count = state["obstacles_count"]
 
-                # Generate expert waypoints using RRT
+        # ── Success ───────────────────────────
+        if waypoints is not None and len(waypoints) > 0:
+            task_data['obstacles']       = obstacles
+            task_data['obstacles_count'] = obstacles_count
+            dump_json(task_data, target_dir + filename)
 
-                waypoints = ray.get(rrt_wrapper.birrt_from_task.remote(task, timeout=timeout[attempt]))
-                
-                if waypoints is not None and len(waypoints) > 0:
+            task = build_task(task_data, task_file, obstacles)
+            np.save(f'{experts_dir}/{task.id}.npy', waypoints)
 
-                    # Save modified task
-                    task_data['obstacles'] = obstacles
-                    task_data['obstacles_count'] = obstacles_count
-
-                    dump_json(task_data, target_dir + filename)
-
-
-                    # Save waypoints
-                    output_path = f'{experts_dir}/{task.id}.npy'
-                    np.save(output_path, waypoints)
-                    
-                    # Save logs
-                    logs["runs"][filename] = f"success:{attempt}"
-                    logs["stats"]["processed"]+=1
-                    logs["stats"]["success"]+=1
-
-                    dump_json(logs, logs_file)
-                    
-                    break
-                
-                else:  
-
-                    if attempt == max_attempts:
-                        # Save logs
-                        logs["runs"][filename] = f"failed:{attempt}"
-                        logs["stats"]["processed"]+=1
-                        logs["stats"]["failed"]+=1
-                        
-                        dump_json(logs, logs_file)
-
-                        break
-
-                    attempt+=1
-
-                
-        except Exception as e:
-            logs["runs"][filename] = "error:0"
-            logs["stats"]["processed"]+=1
-            logs["stats"]["errors"]+=1
+            logs["runs"][filename]       = f"success:{attempt}"
+            logs["stats"]["processed"] += 1
+            logs["stats"]["success"]   += 1
+            done_count += 1
             dump_json(logs, logs_file)
 
-            print(f"[{filename}] {e}")
+            # Worker is free — give it a new task
+            del worker_state[worker]
+            assign_next_task(worker)
 
-            with open(task_file) as f:
-                task_data = json.load(f)
+        # ── Failure: retry on the same worker ─
+        else:
+            if attempt < max_attempts:
+                retry_same_worker(worker)
+            else:
+                print(f"[FAILED]  {filename} attempt {attempt} failed.")
+                logs["runs"][filename]      = f"failed:{attempt}"
+                logs["stats"]["processed"] += 1
+                logs["stats"]["failed"]    += 1
+                done_count += 1
+                dump_json(logs, logs_file)
 
-            dump_json(task_data, failed_dir + filename)
+                # Worker is free — give it a new task
+                del worker_state[worker]
+                assign_next_task(worker)
 
-    
-    # Cleanup
+    # ── Summary ───────────────────────────────
+    s = logs["stats"]
+    print(f"\nDone!  processed={s['processed']}  "
+          f"success={s['success']}  failed={s['failed']}  errors={s['errors']}")
     ray.shutdown()
-    print("Done!")
+
 
 if __name__ == "__main__":
     # Generate experts for all tasks
@@ -215,7 +298,7 @@ if __name__ == "__main__":
     generate_expert_demonstrations(
         task_name=sys.argv[1],
         target_name=sys.argv[2],
-        reset=False,
+        reset="reset" in sys.argv,
         config_file='configs/RRTconfig.json',
         gui=False
     )
