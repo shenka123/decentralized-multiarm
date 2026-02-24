@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=obstacle_gen
+#SBATCH --job-name=obs-gen
 #SBATCH --output=logs/obstacle_%j.out
 #SBATCH --error=logs/obstacle_%j.err
 #SBATCH --ntasks=1
@@ -16,4 +16,4 @@ conda activate multiarm
 cd ~/decentralized-multiarm
 
 # Run your script
-python obstacleGenerator.py base obstacle_v1 2
+python obstacleGenerator.py base obstacle_v1 10

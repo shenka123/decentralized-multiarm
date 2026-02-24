@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=decentralized_multiarm_train
-#SBATCH --output=logs/train_%j.out
-#SBATCH --error=logs/train_%j.err
+#SBATCH --job-name=dma-train
+#SBATCH --output=logs/train_v1_%j.out
+#SBATCH --error=logs/train_v1_%j.err
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=10
 #SBATCH --time=06:00:00
@@ -17,5 +17,5 @@ python main.py \
   --config configs/obstacle_v1.json \
   --tasks_path tasks/obstacle_v1 \
   --expert_waypoints experts/obstacle_v1 \
-  --num_processes 8 \
+  --num_processes 10 \
   --load runs/obstacle_v1/sckpt_multiarm_motion_planner_00002
