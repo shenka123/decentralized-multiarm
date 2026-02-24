@@ -4,6 +4,7 @@ tasks_/
 tasks/
 experts/
 logs/
+runs/
 
 .vscode/
 .vim/
