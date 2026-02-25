@@ -100,7 +100,6 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
     gui: Whether to visualize RRT (slow, use False for batch processing)
     """
 
-
     
     # Initialize Ray
     print("Initializing Ray...")
@@ -210,6 +209,10 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
     ray_timeout = birrt_timeout + 30   # a little headroom over the internal timeout
 
     while worker_state:
+
+        if done_count%100 == 0:
+            dump_json(logs, logs_file)
+
         # All active futures
         all_futures  = [s["future"] for s in worker_state.values()]
         future_to_worker = {s["future"]: w for w, s in worker_state.items()}
@@ -262,7 +265,6 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
             logs["stats"]["processed"] += 1
             logs["stats"]["success"]   += 1
             done_count += 1
-            dump_json(logs, logs_file)
 
             # Worker is free — give it a new task
             del worker_state[worker]
@@ -278,7 +280,6 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
                 logs["stats"]["processed"] += 1
                 logs["stats"]["failed"]    += 1
                 done_count += 1
-                dump_json(logs, logs_file)
 
                 # Worker is free — give it a new task
                 del worker_state[worker]
