@@ -37,9 +37,27 @@ def iter_tasks(tasks_dir, logs):
             logs["stats"]["errors"] += 1
 
 
-def dump_json(dics, filename):
-    with open(filename, "w") as f:
-        json.dump(dics, f, indent=4)
+def dump_json(dics, filename, save_write=False):
+
+    # Use save_write to maintain write atomicity
+    if save_write:
+
+        temp_filename = 'temp/' + os.path.basename(filename)
+        
+        if not os.path.exists('temp/'):
+            os.makedirs('temp/')
+
+        with open(temp_filename, "w") as f:
+            json.dump(dics, f, indent=4)
+
+        os.replace(temp_filename, filename)
+
+        
+    else:
+        with open(filename, "w") as f:
+            json.dump(dics, f, indent=4)
+
+    
 
 
 def build_obstacles(task_data, obs_config):
@@ -209,10 +227,11 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
     ray_timeout = birrt_timeout + 30   # a little headroom over the internal timeout
 
     while worker_state:
-
+        
+        # Save every 100 tasks
         if done_count%100 == 0:
-            dump_json(logs, logs_file)
-
+            dump_json(logs, logs_file, save_write=True)
+        
         # All active futures
         all_futures  = [s["future"] for s in worker_state.values()]
         future_to_worker = {s["future"]: w for w, s in worker_state.items()}
@@ -235,12 +254,11 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
             try:
                 waypoints = ray.get(future, timeout=5)   # already done, 5s is plenty
             except Exception as e:
-                print(f"[ERROR]   {state['filename']}: {e}")
+                print(f"[ERROR] Cant get ray! {e}")
                 logs["runs"][state["filename"]] = "error:0"
                 logs["stats"]["processed"] += 1
                 logs["stats"]["errors"] += 1
                 done_count += 1
-                dump_json(logs, logs_file)
                 del worker_state[worker]
                 assign_next_task(worker)
                 continue
@@ -275,7 +293,6 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
             if attempt < max_attempts:
                 retry_same_worker(worker)
             else:
-                print(f"[FAILED]  {filename} attempt {attempt} failed.")
                 logs["runs"][filename]      = f"failed:{attempt}"
                 logs["stats"]["processed"] += 1
                 logs["stats"]["failed"]    += 1
@@ -284,6 +301,10 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
                 # Worker is free — give it a new task
                 del worker_state[worker]
                 assign_next_task(worker)
+
+
+    
+    dump_json(logs, logs_file, save_write=True)
 
     # ── Summary ───────────────────────────────
     s = logs["stats"]

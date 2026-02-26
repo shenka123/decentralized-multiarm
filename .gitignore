@@ -5,6 +5,7 @@ tasks/
 experts/
 logs/
 runs/
+temp/
 
 .vscode/
 .vim/
