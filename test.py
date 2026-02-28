@@ -1,35 +1,19 @@
 import json
 import random
 from pathlib import Path
+import torch
 
 if __name__ == "__main__":
-    a = [
-        [
-            [
-                0.2098212592404891,
-                -0.07120435166148442,
-                0.0
-            ],
-            [
-                -0.0,
-                -0.0,
-                0.3805772857009801,
-                0.9247491171168938
-            ]
-        ],
-        [
-            [
-                0.15559115539702761,
-                0.6388380180886271,
-                0.0
-            ],
-            [
-                0.0,
-                0.0,
-                0.9364995013622999,
-                -0.3506689092978784
-            ]
-        ]
-    ]
-    b = [k[0] for k in a]
-    print(b)
+    
+    d = 'runs/obstacle_v1/ckpt_multiarm_motion_planner_'
+    a = torch.load(d + "00001")
+    b = torch.load(d + "00013")
+
+    for k in a['networks'].keys():
+        for k2 in a['networks'][k]:
+            if not torch.equal(a['networks'][k][k2], b['networks'][k][k2]):
+                print("Different at:", k + '.' + k2)
+            else:
+                print(k + '.' + k2, "is equal.")
+    print(a['networks'].keys())
+    print(a['stats'], b['stats'])
