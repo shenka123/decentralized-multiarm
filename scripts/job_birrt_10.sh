@@ -6,6 +6,10 @@
 #SBATCH --cpus-per-task=10
 #SBATCH --time=06:00:00
 
+cd ~/decentralized-multiarm/scripts
+sbatch job_birrt_10.sh
+
+
 # ===== Load Conda =====
 source ~/.bashrc
 
