@@ -65,6 +65,7 @@ def build_obstacles(task_data, obs_config):
     obstacles_count = int(np.random.choice(np.arange(0, 6), p=[.05, .3, .3, .2, .1, .05]))
     obstacles = {}
     for obs in list(obs_config)[:obstacles_count]:
+        print(task_data)
         base_poses = [b[0] for b in task_data['base_poses']]
         base = base_poses[np.random.randint(0, len(base_poses))]
         r = np.random.uniform(0.2, 0.7)
@@ -287,8 +288,6 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
             # Worker is free — give it a new task
             del worker_state[worker]
 
-            print(state)
-            print(task_data)
             assign_next_task(worker)
 
         # ── Failure: retry on the same worker ─
