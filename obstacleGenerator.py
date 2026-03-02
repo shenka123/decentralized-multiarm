@@ -194,6 +194,11 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
             filename, task_data, task_file = next(pending)
         except StopIteration:
             return False   # no more tasks
+        
+        if 'base_poses' not in task_data.keys():
+            print("Line 199:")
+            print(task_data)
+            print(task_file)
 
         future, obstacles, obstacles_count = submit_task(
             worker, task_data, task_file, obs_config, birrt_timeout)
