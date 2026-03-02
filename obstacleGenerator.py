@@ -286,6 +286,9 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
 
             # Worker is free — give it a new task
             del worker_state[worker]
+
+            print(state)
+            print(task_data)
             assign_next_task(worker)
 
         # ── Failure: retry on the same worker ─
