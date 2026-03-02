@@ -71,7 +71,7 @@ def simulate(args, config):
             ready_envs=ready_envs,
             ready_actions=env_actions,
             remaining_observations=remaining_observations)
-        print('\r{:02d}'.format(len(observations)), end='')
+        #print('\r{:02d}'.format(len(observations)), end='')
 
 
 if __name__ == "__main__":
