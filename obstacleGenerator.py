@@ -28,6 +28,7 @@ def iter_tasks(tasks_dir, logs):
         if filename in logs["runs"]:
             continue
         try:
+            print(filename)
             with open(task_file) as f:
                 task_data = json.load(f)
             yield filename, task_data, task_file
