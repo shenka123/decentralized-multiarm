@@ -25,6 +25,7 @@ def iter_tasks(tasks_dir, logs):
     for task_file in iter_json_files(tasks_dir):
         filename = os.path.basename(task_file)
         if filename in logs["runs"]:
+            print(filename + " skipped")
             continue
         try:
             with open(task_file) as f:
