@@ -26,15 +26,16 @@ def iter_tasks(tasks_dir, logs):
         
         filename = os.path.basename(task_file)
         if filename not in logs["runs"]:
-            try:
-                with open(task_file) as f:
-                    task_data = json.load(f)
-                yield filename, task_data, task_file
-            except Exception as e:
-                print(f"[ERROR] Could not load {filename}: {e}")
-                logs["runs"][filename] = "error:0"
-                logs["stats"]["processed"] += 1
-                logs["stats"]["errors"] += 1
+            continue
+        try:
+            with open(task_file) as f:
+                task_data = json.load(f)
+            yield filename, task_data, task_file
+        except Exception as e:
+            print(f"[ERROR] Could not load {filename}: {e}")
+            logs["runs"][filename] = "error:0"
+            logs["stats"]["processed"] += 1
+            logs["stats"]["errors"] += 1
 
 
 def dump_json(dics, filename, save_write=False):
@@ -289,6 +290,7 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
 
             # Worker is free — give it a new task
             del worker_state[worker]
+            assign_next_task(worker)
 
         # ── Failure: retry on the same worker ─
         else:
