@@ -397,11 +397,11 @@ class BaseEnv:
                         key=lambda p: np.linalg.norm(np.array(p) - eef_pos)
                     )
                     
-                    # Take K nearest, pad with sentinel [0, 0, -100] if fewer than K
+                    # Take K nearest, pad with sentinel [0, 0, -10] if fewer than K
                     k = self.k_nearest_obstacles
                     nearest = sorted_obstacles[:k]
                     while len(nearest) < k:
-                        nearest.append([0.0, 0.0, -100.0])  # sentinel: far below workspace
+                        nearest.append([0.0, 0.0, -10.0])  # sentinel: far below workspace
                     
                     # Express in this arm's local frame and flatten
                     local_positions = []

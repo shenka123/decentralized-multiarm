@@ -96,13 +96,25 @@
         "min_ur5s_count": 1,
         "max_ur5s_count": 4,
         "obstacles": {
-            "obs1": {
+            "s1": {
                 "type": "Sphere",
-                "radius": 0.2
+                "radius": 0.1
             },
-            "obs2": {
+            "s2": {
                 "type": "Sphere",
-                "radius": 0.5
+                "radius": 0.1
+            },
+            "s3": {
+                "type": "Sphere",
+                "radius": 0.1
+            },
+            "s4": {
+                "type": "Sphere",
+                "radius": 0.1
+            },
+            "s5": {
+                "type": "Sphere",
+                "radius": 0.1
             }
         },
         "task": {

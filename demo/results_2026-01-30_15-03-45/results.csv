@@ -1,5 +1,0 @@
-exp,success,limit,step_count,info,simulation_output_path
-7,False,100000,38,"('PolicyTask', 'ur5_robotiq', 'ur5_robotiq')",simulation_2026-01-30_15-03-45/simulation_391.pkl
-4,False,100000,99,"('PolicyTask', 'ur5_robotiq', 'toteA_large')",simulation_2026-01-30_15-03-45/simulation_868.pkl
-5,False,100000,198,"('PolicyTask', 'ur5_robotiq', 'toteA_large')",simulation_2026-01-30_15-03-45/simulation_806.pkl
-1,False,100000,230,"('PolicyTask', 'ur5_robotiq', 'toteA_large')",simulation_2026-01-30_15-03-45/simulation_695.pkl
