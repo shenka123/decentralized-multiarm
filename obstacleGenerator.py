@@ -318,6 +318,11 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
 if __name__ == "__main__":
     # Generate experts for all tasks
     
+    count = 0
+    for path in iter_json_files('tasks/base/'):
+        count += 1
+    print(count)
+
     generate_expert_demonstrations(
         task_name=sys.argv[1],
         target_name=sys.argv[2],
