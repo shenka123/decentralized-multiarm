@@ -15,7 +15,7 @@ conda activate multiarm
 
 # Move to project directory
 cd ~/decentralized-multiarm
-mkdir -p tasks/base && wget -qO- https://multiarm.cs.columbia.edu/downloads/data/tasks.tar.xz | tar xvfJ - -C tasks/base/
+mkdir -p tasks/base && wget -qO- https://multiarm.cs.columbia.edu/downloads/data/tasks.tar.xz | tar xfJ - -C tasks/base/ --strip-components=1
 
 # Run your script
 python obstacleGenerator.py base obstacle_v1 10
