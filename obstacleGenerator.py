@@ -25,7 +25,6 @@ def iter_tasks(tasks_dir, logs):
     for task_file in iter_json_files(tasks_dir):
         
         filename = os.path.basename(task_file)
-        print(filename)
         if filename in logs["runs"]:
             continue
         try:
@@ -193,6 +192,7 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
         try:
             filename, task_data, task_file = next(pending)
         except StopIteration:
+            print(filename)
             return False   # no more tasks
         
 
