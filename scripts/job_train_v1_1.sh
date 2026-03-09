@@ -18,4 +18,3 @@ python main.py \
   --tasks_path tasks/obstacle_v1 \
   --expert_waypoints experts/obstacle_v1 \
   --num_processes 10 \
-  #--load runs/obstacle_v1_1/ckpt_multiarm_motion_planner_00135

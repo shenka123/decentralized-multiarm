@@ -146,6 +146,13 @@ def parse_args():
         if args.config is None:
             args.config = "{}/config.json".format(dirname(args.load))
         require_config()
+        
+        if args.load is None:
+            logdir = "runs/" + args.name
+            if exists(logdir):
+                checkpoints = sorted(Path(logdir).glob('ckpt_*'))
+                if checkpoints:
+                    args.load = str(checkpoints[-1])
 
     if args.mode == 'expert':
         require_tasks()
