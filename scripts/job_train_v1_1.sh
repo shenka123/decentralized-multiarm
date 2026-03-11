@@ -3,6 +3,7 @@
 #SBATCH --output=logs/train_v1_1_%j.out
 #SBATCH --error=logs/train_v1_1_%j.err
 #SBATCH --ntasks=1
+#SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=10
 #SBATCH --time=06:00:00
 
