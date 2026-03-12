@@ -13,3 +13,4 @@ conda activate multiarm
 cd ~/decentralized-multiarm
 
 python test.py
+nvidia-smi
