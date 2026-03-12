@@ -169,7 +169,9 @@ def parse_args():
 
 def get_device():
     if not torch.cuda.is_available():
+        print("Using CPU")
         return 'cpu'
+    print("Using GPU")
     return 'cuda'
 
 
