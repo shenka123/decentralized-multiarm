@@ -7,4 +7,5 @@ if __name__ == "__main__":
     
     if not torch.cuda.is_available():
         print("Using CPU")
-    print("Using GPU")
+    else:
+        print("Using GPU")
