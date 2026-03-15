@@ -99,14 +99,16 @@ if __name__ == "__main__":
         
         num_arms = min(len(task_data['base_poses']),4)
 
-        target_file = task_file.replace(f'/{filename}', f'_{num_arms}/{filename}')
-        shutil.copyfile(task_file, target_file)
+        for a in range(num_arms):
+            target_file = task_file.replace(f'/{filename}', f'_{a+1}/{filename}')
+            shutil.copyfile(task_file, target_file)
 
         try:
             expert_filename = filename.replace(".json", ".npy")
             expert_file = experts_dir + expert_filename
-            target_expert_file = expert_file.replace(f'/{expert_filename}', f'_{num_arms}/{expert_filename}')
-            shutil.copyfile(expert_file, target_expert_file)
+            for a in range(num_arms):
+                target_expert_file = expert_file.replace(f'/{expert_filename}', f'_{a+1}/{expert_filename}')
+                shutil.copyfile(expert_file, target_expert_file)
         except:
             no_experts.append(filename)
 
