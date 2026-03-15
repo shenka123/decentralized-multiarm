@@ -12,4 +12,4 @@ conda activate multiarm
 cd ~/decentralized-multiarm
 
 # Run your script
-python python tasks_split.py obstacle_v1
+python tasks_split.py obstacle_v1
