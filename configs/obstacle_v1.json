@@ -1,5 +1,6 @@
 {
     "description": "Take position of 2 nearest sphere obstacles into arm state.",
+    "description2": "v2 is trained incrementally for number of arms.",
     "training": {
         "k_nearest_obstacles": 2,
         "observations": {

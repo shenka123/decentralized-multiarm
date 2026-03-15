@@ -14,69 +14,6 @@ def iter_json_files(root):
 
 
 
-# def copy_tasks(task_dir: Path, experts_dir: Path, field: str | None) -> None:
-#     if not task_dir.is_dir():
-#         raise SystemExit(f"Error: '{task_dir}' is not a directory.")
-
-#     json_files = sorted(task_dir.glob("*.json"))
-#     if not json_files:
-#         raise SystemExit(f"No .json files found in '{task_dir}'.")
-
-#     experts_present = experts_dir.is_dir()
-#     if not experts_present:
-#         print(f"Warning: experts directory '{experts_dir}' not found — skipping .npy copies.\n")
-
-#     base_task    = str(task_dir).rstrip("/\\")
-#     base_experts = str(experts_dir).rstrip("/\\")
-
-#     task_copied, npy_copied, npy_missing = 0, 0, 0
-
-#     for src_json in json_files:
-#         with open(src_json) as f:
-#             try:
-#                 data = json.load(f)
-#             except json.JSONDecodeError as e:
-#                 print(f"  [skip] {src_json.name} — invalid JSON: {e}")
-#                 continue
-
-#         try:
-#             k = find_arm_count(data, field)
-#         except KeyError as e:
-#             print(f"  [skip] {src_json.name} — {e}")
-#             continue
-
-#         stem = src_json.stem  # e.g. "12"
-
-#         # --- copy JSON ---
-#         dest_task_dir = Path(f"{base_task}_{k}")
-#         dest_task_dir.mkdir(parents=True, exist_ok=True)
-#         shutil.copy2(src_json, dest_task_dir / src_json.name)
-#         print(f"  {src_json}  ->  {dest_task_dir / src_json.name}")
-#         task_copied += 1
-
-#         # --- copy .npy ---
-#         if experts_present:
-#             src_npy = experts_dir / f"{stem}.npy"
-#             if src_npy.exists():
-#                 dest_exp_dir = Path(f"{base_experts}_{k}")
-#                 dest_exp_dir.mkdir(parents=True, exist_ok=True)
-#                 shutil.copy2(src_npy, dest_exp_dir / src_npy.name)
-#                 print(f"  {src_npy}  ->  {dest_exp_dir / src_npy.name}")
-#                 npy_copied += 1
-#             else:
-#                 print(f"  [warn]  {src_npy} not found — skipped")
-#                 npy_missing += 1
-
-#     print(f"\nDone.")
-#     print(f"  Tasks copied : {task_copied}/{len(json_files)}")
-#     if experts_present:
-#         print(f"  .npy copied  : {npy_copied}  |  missing: {npy_missing}")
-
-# def get_arms(task):
-#     with open(src_json) as f:
-#         data = json.load(f)
-
-
 if __name__ == "__main__":
     name=sys.argv[1]
 

@@ -62,7 +62,6 @@ class BaseEnv:
         self.ray_id = None
         # Get variables from config
         self.max_ur5s_count = env_config['max_ur5s_count']
-        print(self.max_ur5s_count)
         self.max_task_ur5s_count = env_config['max_ur5s_count']
         self.min_task_ur5s_count = env_config['min_ur5s_count']
         self.survival_penalty = env_config['reward']['survival_penalty']
@@ -412,7 +411,6 @@ class BaseEnv:
                     
                     # history=0 means just one frame, wrap in list to match expected format
                     val = [local_positions]
-
                     
                 else:
                     val = [pose_to_high_freq_pose(this_ur5.global_to_ur5_frame(
@@ -421,6 +419,7 @@ class BaseEnv:
                         this_ur5.global_to_ur5_frame(
                         state['ur5s'][ur5_idx][key])
                         for state in history[-(item['history'] + 1):]]
+                    
                 obs['ur5s'][-1][key] = val
         return obs
 
