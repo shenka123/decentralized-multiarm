@@ -122,8 +122,6 @@ class SACLearner(BaseRLAlgo):
             callback=memory_cluster_callback_fn
         )
         self.Q_criterion = torch.nn.MSELoss()
-        print(self.policy)
-        print(self.Q1)
         self.prev_update_time = time()
 
     def get_policy_parameters(self):

@@ -23,9 +23,8 @@ def iter_tasks(tasks_dir, logs):
     Load errors are logged in-place and skipped.
     """
     for task_file in iter_json_files(tasks_dir):
-        
         filename = os.path.basename(task_file)
-        if filename not in logs["runs"]:
+        if filename in logs["runs"]:
             continue
         try:
             with open(task_file) as f:
@@ -192,7 +191,6 @@ def generate_expert_demonstrations(task_name='', target_name='', config_file='',
         try:
             filename, task_data, task_file = next(pending)
         except StopIteration:
-            print(filename)
             return False   # no more tasks
         
 

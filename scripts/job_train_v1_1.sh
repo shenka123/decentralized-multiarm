@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --partition=MGPU-TC2 
 #SBATCH --job-name=dma-train
 #SBATCH --output=logs/train_v1_1_%j.out
 #SBATCH --error=logs/train_v1_1_%j.err
