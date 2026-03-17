@@ -18,31 +18,31 @@ import pickle
 from itertools import chain
 
 
-def step_env(all_envs, ready_envs, ready_actions, remaining_observations):
-    remaining_observations.extend([e.step.remote(a)
-                                   for e, a in zip(ready_envs, ready_actions)])
-    step_retval = []
-    start = time()
-    total = 0
-    while True:
-        ready, remaining_observations = ray.wait(
-            remaining_observations, num_returns=1, timeout=0.01)
-        if len(ready) == 0:
-            continue
-        step_retval.extend(ready)
-        total = time() - start
-        if (len(step_retval) > 0)\
-                or len(step_retval) == len(all_envs):
-            break
+# def step_env(all_envs, ready_envs, ready_actions, remaining_observations):
+#     remaining_observations.extend([e.step.remote(a)
+#                                    for e, a in zip(ready_envs, ready_actions)])
+#     step_retval = []
+#     start = time()
+#     total = 0
+#     while True:
+#         ready, remaining_observations = ray.wait(
+#             remaining_observations, num_returns=1, timeout=0.01)
+#         if len(ready) == 0:
+#             continue
+#         step_retval.extend(ready)
+#         total = time() - start
+#         if (len(step_retval) > 0)\
+#                 or len(step_retval) == len(all_envs):
+#             break
 
-    observations = []
-    ready_envs = []
+#     observations = []
+#     ready_envs = []
 
-    for obs, env_id in ray.get(step_retval):
-        observations.append(obs)
-        ready_envs.append(env_id['val'])
+#     for obs, env_id in ray.get(step_retval):
+#         observations.append(obs)
+#         ready_envs.append(env_id['val'])
 
-    return ready_envs, observations, remaining_observations
+#     return ready_envs, observations, remaining_observations
 
 
 def simulate(args, config):
