@@ -129,12 +129,20 @@ class SACLearner(BaseRLAlgo):
 
     def get_update(self, version):
         self.check_async()
-        if self.should_update():
-            self.train()
+
+        # Original code
+        # if self.should_update():
+        #     self.train()
+        
         if version < self.stats['update_steps']:
             return self.stats['update_steps'], self.policy.state_dict()
-        else:
-            return None
+        return None
+    
+    def maybe_train(self):
+        """Called by main process. Triggers training if conditions are met."""
+        self.check_async()
+        if self.should_update():
+            self.train()
 
     def get_inference_node(self):
         class SACInference:
@@ -152,6 +160,8 @@ class SACLearner(BaseRLAlgo):
                 self.current_version = policy_version
                 self.learner_handle = learner
                 self.check_update_task = None
+                self.last_update_check = 0.0      
+                self.update_check_interval = 2.0 
 
             def act(self, obs):
                 self.check_update()
@@ -163,23 +173,43 @@ class SACLearner(BaseRLAlgo):
                     reparametrize=self.reparametrize)
                 return actions.detach().cpu()
 
-            def check_update(self):
-                if self.check_update_task is None:
-                    self.check_update_task = \
-                        self.learner_handle.get_update.remote(
-                            self.current_version)
-                else:
-                    ready, remaining = ray.wait(
+            def check_update(self): 
+                # if self.check_update_task is None:
+                #     self.check_update_task = \
+                #         self.learner_handle.get_update.remote(
+                #             self.current_version)
+                # else:
+                #     ready, remaining = ray.wait(
+                #         [self.check_update_task],
+                #         num_returns=1,
+                #         timeout=1e-8)
+                #     if len(ready) > 0:
+                #         retval = ray.get(ready)[0]
+                #         self.check_update_task = None
+                #         if retval is None:
+                #             return
+                #         self.current_version, new_params = retval
+                #         self.policy.load_state_dict(new_params)
+
+                now = time()
+                if self.check_update_task is not None:
+                    ready, _ = ray.wait(
                         [self.check_update_task],
                         num_returns=1,
                         timeout=1e-8)
                     if len(ready) > 0:
                         retval = ray.get(ready)[0]
                         self.check_update_task = None
-                        if retval is None:
-                            return
-                        self.current_version, new_params = retval
-                        self.policy.load_state_dict(new_params)
+                        if retval is not None:
+                            self.current_version, new_params = retval
+                            self.policy.load_state_dict(new_params)
+                
+                # Fire new request only if cooldown has elapsed and no request is pending
+                if self.check_update_task is None and \
+                        (now - self.last_update_check) > self.update_check_interval:
+                    self.check_update_task = self.learner_handle.get_update.remote(
+                        self.current_version)
+                    self.last_update_check = now
 
         inference_policy = deepcopy(self.policy)
         return SACInference(
