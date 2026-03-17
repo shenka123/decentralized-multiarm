@@ -774,7 +774,7 @@ class BaseEnv:
                         ur5_output,
                         history_frame))
             output.append(ur5_output)
-        output = torch.from_numpy(np.array(output, dtype=np.float32))
+        output = torch.FloatTensor(output)
         if self.centralized_policy:
             output = output.view(-1)
         return output
