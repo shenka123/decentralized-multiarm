@@ -31,7 +31,7 @@ def step_env(all_envs, ready_envs, ready_actions, remaining_observations):
             continue
         step_retval.extend(ready)
         total = time() - start
-        if (len(step_retval) > 0)\
+        if (total > 0.01 and len(step_retval) > 0)\
                 or len(step_retval) == len(all_envs):
             break
 
@@ -51,26 +51,6 @@ def simulate(args, config):
     signal(SIGINT, lambda sig, frame: exit_handler(
         [value['exit_handler'] for key, value in keep_alive.items()
          if value['exit_handler'] is not None]))
-    
-    inference_node = policy_manager.get_inference_nodes()['multiarm_motion_planner']
-    worker_futures = [e.run_forever.remote(inference_node) for e in envs]
-    print(f"[Simulate] {len(envs)} workers launched autonomously")
-
-    learner = policy_manager.policies['multiarm_motion_planner']
-    step = 0
-    while True:
-        ray.get(learner.maybe_train.remote())
-        step += 1
-
-        # Lightweight liveness check — detect crashed workers
-        if step % 100 == 0:
-            done, worker_futures = ray.wait(
-                worker_futures, num_returns=1, timeout=0.0)
-            if len(done) > 0:
-                # run_forever should never return — if it does, a worker died
-                print("[Simulate] WARNING: a worker exited unexpectedly")
-
-    '''
 
     observations = ray.get([e.reset.remote() for e in envs])
     observations = [obs for obs, _ in observations]
@@ -92,9 +72,6 @@ def simulate(args, config):
             ready_actions=env_actions,
             remaining_observations=remaining_observations)
         #print('\r{:02d}'.format(len(observations)), end='')
-
-    '''
-
 
 
 if __name__ == "__main__":

@@ -871,26 +871,6 @@ class BaseEnv:
                     key, updated_stats[key])
             print(output)
         self.curriculum_level = level
-    
-    def run_forever(self, inference_policy):
-        '''
-        Autonomous episode loop. Runs forever inside the worker process.
-        - Inference is local (no Ray roundtrip per step)
-        - Memory pushing already handled inside step()
-        - Weight sync handled by inference_policy.check_update()
-        '''
-        obs_raw, _ = self.reset()
-        while True:
-            try:
-                inference_policy.check_update()
-                actions = inference_policy.act(
-                    obs_raw['multiarm_motion_planner'])
-                obs_raw, _ = self.step(actions)
-            except Exception as e:
-                print(f"[BaseEnv.run_forever] Error: {e}, resetting...")
-                import traceback
-                traceback.print_exc()
-                obs_raw, _ = self.reset()
 
 
 @ ray.remote
