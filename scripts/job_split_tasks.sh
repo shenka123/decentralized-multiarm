@@ -10,5 +10,8 @@ source ~/.bashrc
 conda activate multiarm
 cd ~/decentralized-multiarm
 
+rm -rf tasks/obstacle_v1_1/ tasks/obstacle_v1_2/ tasks/obstacle_v1_3/ tasks/obstacle_v1_4/ experts/obstacle_v1_1/ experts/obstacle_v1_2/ experts/obstacle_v1_3/ experts/obstacle_v1_4/
+
+
 # Run your script
 python tasks_split.py obstacle_v1
