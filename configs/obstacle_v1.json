@@ -90,7 +90,7 @@
         },
         "update_interval": 16000,
         "save_interval": 1,
-        "num_processes": 16
+        "num_processes": 10
     },
     "environment": {
         "action_type": "delta",
