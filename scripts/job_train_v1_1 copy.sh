@@ -1,0 +1,22 @@
+#!/bin/bash
+#SBATCH --partition=MGPU-TC2 
+#SBATCH --job-name=dma-train
+#SBATCH --output=logs/train_v1_1_%j.out
+#SBATCH --error=logs/train_v1_1_%j.err
+#SBATCH --ntasks=1
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=5
+#SBATCH --time=06:00:00
+
+source ~/.bashrc
+
+conda activate multiarm
+cd ~/decentralized-multiarm
+
+python main.py \
+  --mode train \
+  --name obstacle_v1_1 \
+  --config configs/obstacle_v1.json \
+  --tasks_path tasks/obstacle_v1 \
+  --expert_waypoints experts/obstacle_v1 \
+  --num_processes 5
