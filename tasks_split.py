@@ -36,7 +36,7 @@ if __name__ == "__main__":
         
         num_arms = min(len(task_data['base_poses']),4)
 
-        for a in range(num_arms, 5):
+        for a in range(num_arms, 4):
             target_file = task_file.replace(f'/{filename}', f'_{a}/{filename}')
             shutil.copyfile(task_file, target_file)
 

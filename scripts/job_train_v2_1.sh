@@ -18,5 +18,5 @@ python main.py \
   --name obstacle_v2 \
   --config configs/obstacle_v1.json \
   --tasks_path tasks/obstacle_v1_1 \
-  --expert_waypoints experts/obstacle_v1_1 \
+  --expert_waypoints experts/obstacle_v1 \
   --num_processes 10 \
