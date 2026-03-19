@@ -4,18 +4,19 @@
 #SBATCH --error=logs/train_v2_%j.err
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=10
+#SBATCH --cpus-per-task=5
 #SBATCH --time=06:00:00
 
 source ~/.bashrc
 
 conda activate multiarm
+module load cuda/12.8.0 
 cd ~/decentralized-multiarm
 
 python main.py \
   --mode train \
   --name obstacle_v2 \
   --config configs/obstacle_v1.json \
-  --tasks_path tasks/obstacle_v1_3 \
+  --tasks_path tasks/obstacle_v1_1 \
   --expert_waypoints experts/obstacle_v1 \
-  --num_processes 10 
+  --num_processes 5
