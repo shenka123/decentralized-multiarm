@@ -28,6 +28,7 @@ from os.path import abspath
 from os.path import exists
 from os import mkdir
 import pickle
+import logging
 
 
 def merge(a, b):
@@ -388,7 +389,7 @@ def initialize_ray():
     ray.init(
         # log_to_driver=False,
         # local_mode=False,
-        logging_level=ray.logging.ERROR
+        logging_level=logging.ERROR
     )
 
 
