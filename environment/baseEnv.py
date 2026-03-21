@@ -176,10 +176,7 @@ class BaseEnv:
 
 
     def setup_obstacles(self, env_config):
-        print("setting up obstacles")
         self.all_obs = create_obstacles(env_config['obstacles'])
-        
-        print("setting up obstacles 2")
         if len(self.all_obs) > 0:
             self.enable_obstacles()
         

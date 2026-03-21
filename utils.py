@@ -388,7 +388,7 @@ def initialize_ray():
     ray.init(
         # log_to_driver=False,
         # local_mode=False,
-        # logging_level=ray.logging.ERROR
+        logging_level=ray.logging.ERROR
     )
 
 
