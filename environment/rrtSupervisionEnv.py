@@ -64,7 +64,6 @@ class RRTSupervisionEnv(BaseEnv):
 
     def load_expert_waypoints_for_task(self, task_id):
         expert_path = self.expert_root_dir + task_id + ".npy"
-        print(f"[RRTSupervisionEnv] Looking for waypoints at: {expert_path}")
         try:
             rrt_waypoints = np.load(expert_path)
         except Exception:
