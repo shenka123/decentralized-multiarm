@@ -345,23 +345,16 @@ class TaskLoader:
             self.files = [abspath(file_name)
                           for file_name in Path(root_dir).rglob('*.json')
                           if 'config' not in str(file_name)]
-
-        print("[TaskLoader] Preloading tasks into memory...")
-        self.tasks = [t for t in
-                    (Task.from_file(f) for f in self.files)
-                    if t is not None]
-        print("[TaskLoader] Preloaded {} tasks".format(len(self.tasks)))
-        
         self.repeat = repeat
         if not self.repeat:
             print("[TaskLoader] WARNING: not repeating tasks.")
-        assert len(self.tasks) > 0
+        assert len(self.files) > 0
         print("[TaskLoader] Found {} tasks".format(
-            len(self.tasks)))
+            len(self.files)))
         if shuffle:
-            shuffle_f(self.tasks)
+            shuffle_f(self.files)
         self.current_idx = 0
-        self.count = len(self.tasks)
+        self.count = len(self.files)
         self.succeeded = []
 
     def __len__(self):
@@ -382,26 +375,24 @@ class TaskLoader:
         return len(self.files)
 
     def get_next_task(self):
-        if self.current_idx >= len(self.tasks)\
+        if self.current_idx >= len(self.files)\
                 and not self.repeat:
             print("[TargetLoader] Out of targets")
             while True:
                 sleep(5)
-
-        task = self.tasks[self.current_idx]
-        self.current_idx = (self.current_idx + 1) % len(self.tasks)
-        return task
+        current_file = self.files[self.current_idx]
+        self.current_idx = self.current_idx + 1
+        if self.repeat:
+            self.current_idx = self.current_idx % len(self.files)
+        return Task.from_file(task_path=current_file)
 
     def on_success(self, task_path):
         self.succeeded.append(task_path)
         print(f"[TaskLoader] On Success {len(self.succeeded)/self.count}")
-        self.tasks = [t for t in self.tasks if t.task_path != task_path]
-        if len(self.tasks) < 5:
-            # Reload succeeded tasks back in
-            recovered = [Task.from_file(p) for p in self.succeeded]
-            self.tasks.extend([t for t in recovered if t is not None])
+        self.files.remove(task_path)
+        if len(self.files) < 5:
+            self.files.extend(self.succeeded)
             self.succeeded = []
-            self.current_idx = self.current_idx % len(self.tasks)
             print("[TaskLoader] New Level!")
 
     def set_repeat(self, val):
