@@ -149,9 +149,9 @@
             "collectively_reach_target": 1.0,
             "survival_penalty": 0,
             "delta": {
-                "position": 0,
+                "position": 0.1,
                 "orientation": 0,
-                "activation_radius": 100
+                "activation_radius": 0.2
             },
             "supervision_penalty": 0,
             "proximity_penalty": {
