@@ -16,21 +16,6 @@ class BenchmarkEnv(BaseEnv):
         env_config['ur5_speed'] = 0.008
         env_config['max_ur5s_count'] = 4
 
-
-        
-        # Obstacle config here
-        env_config['obstacles'] = {
-            "s1": {
-                "type": "Sphere",
-                "radius": 0.1
-            },
-            "s2": {
-                "type": "Sphere",
-                "radius": 0.1
-            }
-        }
-
-
         env_config['min_ur5s_count'] = 1
         print("[BenchmarkEnv] config:")
         print("\tepisode_length:{}".format(env_config['episode_length']))

@@ -66,6 +66,8 @@ class BaseEnv:
         self.min_task_ur5s_count = env_config['min_ur5s_count']
         self.survival_penalty = env_config['reward']['survival_penalty']
         self.workspace_radius = env_config['workspace_radius']
+        self.early_stop_threshold = env_config['early_stop']['threshold']
+        self.early_stop_steps = env_config['early_stop']['steps']
         self.individually_reach_target = \
             env_config['reward']['individually_reach_target']
         self.collectively_reach_target = \
@@ -129,6 +131,7 @@ class BaseEnv:
 
         # Keep track of episode progress
         self.current_step = 0
+        self.current_idle_step = 0
         self.terminate_episode = False
 
         # Visualization
@@ -504,6 +507,12 @@ class BaseEnv:
             return self.reset()
         self.current_step += 1
         rewards = np.zeros(len(self.ur5_episode_memories))
+
+        if actions.norm() < self.early_stop_threshold:
+            self.current_idle_step += 1
+        else:
+            self.current_idle_step = 0
+
         self.handle_actions(actions)
 
         for t_sim in range(self.simulation_steps_per_action_step):
@@ -533,10 +542,12 @@ class BaseEnv:
 
             if self.terminate_episode:
                 break
+        
 
         # Check if ur5 reached target positions
         self.terminate_episode = self.terminate_episode\
-            or self.current_step >= self.episode_length
+            or self.current_step >= self.episode_length\
+            or self.current_idle_step >= self.early_stop_steps
 
         self.finish_up_step()
 
@@ -641,6 +652,7 @@ class BaseEnv:
     def reset(self):
         self.history = []
         self.current_step = 0
+        self.current_idle_step = 0
         self.episode_counts += 1
         self.finish_task_in_episode = False
         self.setup_task()

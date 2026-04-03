@@ -143,8 +143,8 @@
         "prioritized_task_loader": false,
         "workspace_radius": 0.85,
         "early_stop": {
-            "threshold": 0,
-            "steps": 10
+            "threshold": 0.05,
+            "steps": 5
         },
         "reward": {
             "collision_penalty": -0.05,
@@ -165,7 +165,7 @@
         },
         "terminate_on_collision": true,
         "terminate_on_collectively_reach_target": true,
-        "episode_length": 500,
+        "episode_length": 50,
         "action_interval": 0.05,
         "collision_distance": 0.0,
         "stop_ur5_after_reach": false,
