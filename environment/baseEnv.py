@@ -515,6 +515,8 @@ class BaseEnv:
                 self.current_idle_step = 0
         except:
             print(type(actions))
+            print(actions)
+            print(1/0)
 
         self.handle_actions(actions)
 
