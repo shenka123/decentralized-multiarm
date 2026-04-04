@@ -508,10 +508,13 @@ class BaseEnv:
         self.current_step += 1
         rewards = np.zeros(len(self.ur5_episode_memories))
 
-        if actions.norm() < self.early_stop_threshold:
-            self.current_idle_step += 1
-        else:
-            self.current_idle_step = 0
+        try:
+            if actions.norm() < self.early_stop_threshold:
+                self.current_idle_step += 1
+            else:
+                self.current_idle_step = 0
+        except:
+            print(type(actions))
 
         self.handle_actions(actions)
 
