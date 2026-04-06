@@ -147,7 +147,7 @@
             "steps": 10
         },
         "reward": {
-            "collision_penalty": -0.05,
+            "collision_penalty": -0.1,
             "individually_reach_target": 0.01,
             "cooperative_individual_reach_target": false,
             "collectively_reach_target": 1.0,
