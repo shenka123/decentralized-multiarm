@@ -22,4 +22,5 @@ python main.py \
   --config configs/obstacle_v1.json \
   --tasks_path tasks/obstacle_v1 \
   --expert_waypoints experts/obstacle_v1/ \
+  --max_time 24 \
   --num_processes 10 

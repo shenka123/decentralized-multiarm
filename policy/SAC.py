@@ -23,7 +23,7 @@ class SACLearner(BaseRLAlgo):
             load_path=None,
             device='cuda',
             training=True,
-            save_interval=100):
+            save_interval=1000):
         super().__init__(
             policy_key=policy_key,
             writer=writer,

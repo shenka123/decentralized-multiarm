@@ -62,6 +62,7 @@ def simulate(args, config):
 
     remaining_observations = []
     ready_envs = copy(envs)
+    start_time = time()
     while(True):
         env_actions = [multiarm_motion_planner.act(
             observation['multiarm_motion_planner'])
@@ -71,6 +72,11 @@ def simulate(args, config):
             ready_envs=ready_envs,
             ready_actions=env_actions,
             remaining_observations=remaining_observations)
+        
+        if args.max_time:
+            if time() - start_time >= args.max_time*60*60 - 10*60:  
+                print("Max time reached.")
+                break
         #print('\r{:02d}'.format(len(observations)), end='')
 
 

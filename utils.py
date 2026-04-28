@@ -77,6 +77,8 @@ def parse_args():
                         help="path of directory containing tasks")
     parser.add_argument('--gui', action='store_true',
                         default=False, help='Run headless or render')
+    parser.add_argument('--max_time', type=int,
+                        default=None, help='Maximum train run time in hours')
     parser.add_argument('--num_processes', type=int,
                         default=16, help='How many processes to parallelize')
     parser.add_argument('--curriculum_level', type=int,
@@ -165,6 +167,7 @@ def parse_args():
     ):
         parser.print_help()
         exit()
+
     return args
 
 
