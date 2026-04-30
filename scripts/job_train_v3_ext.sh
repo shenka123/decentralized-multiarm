@@ -6,7 +6,7 @@
 #SBATCH --error=logs/train_v2_%j.err
 #SBATCH --ntasks=1
 #SBATCH --nodelist=TC2N08
-##SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=10
 #SBATCH --time=24:00:00
 
