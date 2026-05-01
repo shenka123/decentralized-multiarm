@@ -62,7 +62,7 @@ def dump_json(dics, filename, save_write=False):
 
 def build_obstacles(task_data, obs_config):
     """Sample a random obstacle configuration for a task."""
-    obstacles_count = int(np.random.choice(np.arange(0, 6), p=[.05, .3, .3, .2, .1, .05]))
+    obstacles_count = int(np.random.choice(np.arange(0, 6), p=[.01, .04, .2, .3, .25, .2]))
     obstacles = {}
     
     for obs in list(obs_config)[:obstacles_count]:

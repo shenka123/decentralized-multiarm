@@ -17,4 +17,4 @@ conda activate multiarm
 cd ~/decentralized-multiarm
 
 # Run your script
-python obstacleGenerator.py base obstacle_v1 10
+python obstacleGenerator.py base obstacle_v2 10
