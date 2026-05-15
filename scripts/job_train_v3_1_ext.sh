@@ -20,7 +20,7 @@ python main.py \
   --mode train \
   --name obstacle_v3 \
   --config configs/obstacle_v1.json \
-  --tasks_path tasks/obstacle_v1 \
+  --tasks_path tasks/obstacle_v2 \
   --expert_waypoints experts/obstacle_v2/ \
   --max_time 24 \
   --num_processes 10 
