@@ -16,6 +16,7 @@ from pathlib import Path
 from random import shuffle as shuffle_f
 import pickle
 from itertools import chain
+from time import time
 
 
 def step_env(all_envs, ready_envs, ready_actions, remaining_observations):
@@ -63,7 +64,9 @@ def simulate(args, config):
     remaining_observations = []
     ready_envs = copy(envs)
     start_time = time()
-    while(True):
+
+    while True:
+        t0 = time()
         env_actions = [multiarm_motion_planner.act(
             observation['multiarm_motion_planner'])
             for observation in observations]
@@ -73,6 +76,14 @@ def simulate(args, config):
             ready_actions=env_actions,
             remaining_observations=remaining_observations)
         
+        
+        planning_elapsed = time() - t0
+        per_env_planning = planning_elapsed / max(len(ready_envs), 1)
+
+        if args.mode == 'benchmark':
+            for env in ready_envs:
+                env.record_planning_time.remote(per_env_planning)
+                
         if args.max_time:
             if time() - start_time >= args.max_time*60*60 - 10*60:  
                 print("Max time reached.")

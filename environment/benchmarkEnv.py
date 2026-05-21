@@ -44,8 +44,10 @@ class BenchmarkEnv(BaseEnv):
 
     def reset_score(self):
         self.current_episode_score = {
-            'time': 0.0
+            'time': 0.0,
+            'planning_time': 0.0,
         }
+        self._episode_planning_time = 0.0
 
     def set_level(self, level):
         pass
@@ -74,12 +76,15 @@ class BenchmarkEnv(BaseEnv):
             self.current_episode_score['collision'] =\
                 0 if collision_free else 1
         task = self.get_current_task()
+        self.current_episode_score['obstacle_count'] = len(task.obstacles)
         self.current_episode_score['task'] = {
             'task_path': task.task_path,
             'id': task.id,
             'ur5_count': task.ur5_count,
-            'difficulty': task.difficulty
+            'difficulty': task.difficulty,
+            'obstacle_count': len(task.obstacles),
         }
+        self.current_episode_score['planning_time'] = self._episode_planning_time
         pos_residuals, orn_residuals = self.get_ur5_eef_residuals()
         target_poses = self.task_manager.get_target_end_effector_poses()
         transformed_target_poses = [
@@ -107,6 +112,9 @@ class BenchmarkEnv(BaseEnv):
         }
         ray.get(self.logger.add_stats.remote(
                 self.current_episode_score))
+
+    def record_planning_time(self, elapsed_seconds):
+        self._episode_planning_time += elapsed_seconds
 
     def reset_stats(self):
         super().reset_stats()

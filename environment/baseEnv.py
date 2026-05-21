@@ -205,8 +205,18 @@ class BaseEnv:
             "collisions": [0] * len(self.active_ur5s),
             # number of steps arm spends in reached state in each episode
             "reached": [0] * len(self.active_ur5s),
-            "collective_reach_count": 0
+            "collective_reach_count": 0,
+        
+            # metrics for benchmark
+            "total_joint_motion": [0.0] * len(self.active_ur5s),
+            "path_length": [0.0] * len(self.active_ur5s),
+            "max_dist_to_goal": [0.0] * len(self.active_ur5s),
+            "steps_to_success": None,
+            "time_to_success": None,
         }
+        # Track previous joint values and EEF positions for delta computation
+        self._prev_joint_values = None
+        self._prev_eef_positions = None
 
     def get_pose_residuals(self, poseA, poseB):
         posA = np.array(poseA[0])
@@ -615,6 +625,11 @@ class BaseEnv:
             'mean_orn_residual': orn_residuals.mean(),
             'max_pos_residual': pos_residuals.max(),
             'max_orn_residual': orn_residuals.max(),
+            'total_joint_motion': np.sum(self.stats['total_joint_motion']),
+            'path_length': np.sum(self.stats['path_length']),
+            'max_dist_to_goal': np.max(self.stats['max_dist_to_goal']),
+            'steps_to_success': self.stats['steps_to_success'],
+            'time_to_success': self.stats['time_to_success'],
         }
 
     def send_stats_to_logger(self):
@@ -840,6 +855,34 @@ class BaseEnv:
                 self.stats['collisions'][i] += + 1
         self.task_manager.set_timer(curr / max)
 
+        current_joints = [
+            ur5.get_arm_joint_values()
+            for ur5 in self.active_ur5s
+        ]
+        if self._prev_joint_values is not None:
+            for i, (prev, curr_j) in enumerate(
+                    zip(self._prev_joint_values, current_joints)):
+                delta = float(np.sum(np.abs(
+                    np.array(curr_j) - np.array(prev))))
+                self.stats['total_joint_motion'][i] += delta
+        self._prev_joint_values = current_joints
+
+        current_eef = [
+            np.array(ur5.get_end_effector_pose()[0])
+            for ur5 in self.active_ur5s
+        ]
+        if self._prev_eef_positions is not None:
+            for i, (prev_pos, curr_pos) in enumerate(
+                    zip(self._prev_eef_positions, current_eef)):
+                step_dist = float(np.linalg.norm(curr_pos - prev_pos))
+                self.stats['path_length'][i] += step_dist
+        self._prev_eef_positions = current_eef
+
+        pos_residuals, _ = self.get_ur5_eef_residuals()
+        for i, res in enumerate(pos_residuals):
+            if res > self.stats['max_dist_to_goal'][i]:
+                self.stats['max_dist_to_goal'][i] = float(res)
+
     def on_reset(self):
         pass
 
@@ -848,6 +891,10 @@ class BaseEnv:
         self.terminate_episode = self.terminate_episode or\
             self.terminate_on_collectively_reach_target
         self.finish_task_in_episode = True
+        
+        if self.stats["steps_to_success"] is None:
+            self.stats["steps_to_success"] = self.current_step
+            self.stats["time_to_success"] = self.current_step * self.action_interval
 
     def on_target_reach(self, ur5, idx):
         ur5.on_touch_target()

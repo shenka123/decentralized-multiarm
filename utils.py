@@ -29,6 +29,7 @@ from os.path import exists
 from os import mkdir
 import pickle
 import logging
+import csv
 
 
 def merge(a, b):
@@ -356,6 +357,17 @@ class Logger:
             self.benchmark_scores,
             open(output_path, 'wb'))
 
+        if not self.benchmark_scores:
+            return
+        csv_path = self.logdir + '/{}.csv'.format(benchmark_name)
+        fieldnames = list(dict.fromkeys(
+            k for score in self.benchmark_scores for k in score))
+
+        with open(csv_path, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(self.benchmark_scores)
+
     def print_summary(self):
         for key in self.benchmark_scores[0].keys():
             if key == 'task' or key == 'debug':
@@ -424,8 +436,10 @@ def prepare_logger(args, config):
             curriculum_level=args.curriculum_level)
         dump(config, open(logdir + '/config.json', 'w'), indent=4)
     elif args.mode == 'benchmark':
+        benchmark_dir = f"benchmark"
+        os.makedirs(benchmark_dir, exist_ok=True)
         logger = Logger.remote(
-            logdir=dirname(args.load),
+            logdir=benchmark_dir,
             benchmark_mode=True,
             benchmark_name=args.name
         )
