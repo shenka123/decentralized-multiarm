@@ -144,7 +144,7 @@
         "workspace_radius": 0.85,
         "early_stop": {
             "threshold": 0.05,
-            "steps": 5
+            "steps": 100
         },
         "reward": {
             "collision_penalty": -0.05,
@@ -170,90 +170,8 @@
         "collision_distance": 0.0,
         "stop_ur5_after_reach": false,
         "ur5_speed": 0.02,
-        "position_tolerance": 0.04,
-        "orientation_tolerance": 0.1,
-        "curriculum": {
-            "graduation_threshold": 0.7,
-            "levels": [
-                {
-                    "position_tolerance": 0.1,
-                    "orientation_tolerance": 0.2,
-                    "max_task_ur5s_count": 4,
-                    "max_task_difficulty": 100.0
-                },
-                {
-                    "position_tolerance": 0.08,
-                    "orientation_tolerance": 0.16
-                },
-                {
-                    "position_tolerance": 0.06,
-                    "orientation_tolerance": 0.14
-                },
-                {
-                    "position_tolerance": 0.04,
-                    "orientation_tolerance": 0.1
-                },
-                {
-                    "position_tolerance": 0.036,
-                    "orientation_tolerance": 0.09
-                },
-                {
-                    "position_tolerance": 0.032,
-                    "orientation_tolerance": 0.08
-                },
-                {
-                    "position_tolerance": 0.028,
-                    "orientation_tolerance": 0.07
-                },
-                {
-                    "position_tolerance": 0.026,
-                    "orientation_tolerance": 0.06
-                },
-                {
-                    "position_tolerance": 0.024,
-                    "orientation_tolerance": 0.05
-                },
-                {
-                    "position_tolerance": 0.022
-                },
-                {
-                    "position_tolerance": 0.021
-                },
-                {
-                    "position_tolerance": 0.02
-                },
-                {
-                    "position_tolerance": 0.019
-                },
-                {
-                    "position_tolerance": 0.018
-                },
-                {
-                    "position_tolerance": 0.017
-                },
-                {
-                    "position_tolerance": 0.016
-                },
-                {
-                    "position_tolerance": 0.015
-                },
-                {
-                    "position_tolerance": 0.014
-                },
-                {
-                    "position_tolerance": 0.013
-                },
-                {
-                    "position_tolerance": 0.012
-                },
-                {
-                    "position_tolerance": 0.011
-                },
-                {
-                    "position_tolerance": 0.01
-                }
-            ]
-        }
+        "position_tolerance": 0.1,
+        "orientation_tolerance": 0.4
     },
     "behaviour-clone": {
         "lr": 0.001,
