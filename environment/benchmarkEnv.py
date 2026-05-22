@@ -28,8 +28,8 @@ class BenchmarkEnv(BaseEnv):
             gui=gui,
             logger=logger)
         self.reset_score()
-        self.position_tolerance = 0.02
-        self.orientation_tolerance = 0.1
+        self.position_tolerance = env_config.get('position_tolerance', 0.02)
+        self.orientation_tolerance = env_config.get('orientation_tolerance', 0.1)
         self.terminate_on_collectively_reach_target = True
         self.terminate_on_collision = True
         self.stop_ur5_after_reach = False
