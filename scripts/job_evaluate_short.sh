@@ -26,7 +26,7 @@ python main.py \
   --load runs/obstacle_v3/ckpt_multiarm_motion_planner_01175 \
   --max_time 0.5 \
   --num_processes 10 \
-  --tasks_path tasks/obstacle_evaluate \
+  --tasks_path tasks/obstacle_evaluate
 
   
 python main.py \
@@ -36,4 +36,4 @@ python main.py \
   --load runs/obstacle_v3/ckpt_multiarm_motion_planner_01725 \
   --max_time 0.5 \
   --num_processes 10 \
-  --tasks_path tasks/obstacle evaluate \
+  --tasks_path tasks/obstacle evaluate
