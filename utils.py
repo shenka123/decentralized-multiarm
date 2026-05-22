@@ -290,20 +290,36 @@ class Logger:
             self.writer.add_scalar(key, val, timestamp)
 
     def add_scalars(self, scalars_dict, timestamp, flush_stats=True):
+        
         if self.benchmark_mode:
             return
+        
+        STATS_KEYS = [
+            'rewards',
+            'individual_reach',
+            'collective_reach',
+            'collision',
+            'success',
+            'curriculum_level',
+            'mean_pos_residual',
+            'mean_orn_residual',
+            'max_pos_residual',
+            'max_orn_residual',
+            'supervision_count',
+            'supervision_failures',
+            'supervision_successes',
+        ]
+        
         for key in scalars_dict:
             self.writer.add_scalar(key, scalars_dict[key], timestamp)
-        for key in self.stats_history:
+        for key in STATS_KEYS:
+            if key not in self.stats_history:
+                continue
             if len(self.stats_history[key]) == 0:
                 continue
             print(key, ":", np.mean(self.stats_history[key]))
-            self.writer.add_scalar(
-                key + "/mean",
-                np.mean(self.stats_history[key]), timestamp)
-            self.writer.add_scalar(
-                key + "/std",
-                np.std(self.stats_history[key]), timestamp)
+            self.writer.add_scalar(key + "/mean", np.mean(self.stats_history[key]), timestamp)
+            self.writer.add_scalar(key + "/std", np.std(self.stats_history[key]), timestamp)
         self.stats_history = {}
 
     def get_logdir(self):
