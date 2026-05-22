@@ -21,7 +21,7 @@ python -c "import torch; print(torch.cuda.is_available(), torch.version.cuda)"
 
 python main.py \
   --mode benchmark \
-  --name benchmark_short_multiarm \
+  --name $(date +%Y%m%d%H%M%S)_benchmark_short_multiarm \
   --config configs/obstacle_v1_short.json \
   --load runs/obstacle_v3/ckpt_multiarm_motion_planner_01175 \
   --max_time 0.5 \
@@ -31,7 +31,7 @@ python main.py \
   
 python main.py \
   --mode benchmark \
-  --name benchmark_short_multiarm_dense \
+  --name $(date +%Y%m%d%H%M%S)_benchmark_short_multiarm_dense \
   --config configs/obstacle_v1_short.json \
   --load runs/obstacle_v3/ckpt_multiarm_motion_planner_01725 \
   --max_time 0.5 \
