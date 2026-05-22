@@ -389,9 +389,12 @@ class Logger:
             if key == 'task' or key == 'debug':
                 continue
             scores = [score[key] for score in self.benchmark_scores]
-            print(key)
-            print('\tmean:', np.mean(scores))
-            print('\tstd:', np.std(scores))
+            try:
+                print(key)
+                print('\tmean:', np.mean(scores))
+                print('\tstd:', np.std(scores))
+            except:
+                pass
 
 
 def mkdir_and_save_config(args, dir_path, config):
