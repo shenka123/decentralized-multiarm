@@ -99,13 +99,13 @@ class OMPLWrapper:
         si.setStateValidityChecker(validity_checker)
         si.setup()
 
-        pdef = ob.ProblemDefinition(si)
-        start_state = ob.State(space)
-        goal_state = ob.State(space)
+        pdef = ob.ProblemDefinition(si)    
+        start_state = si.allocState()
+        goal_state = si.allocState()
         for i, v in enumerate(flat_start):
-            start_state()[i] = v
+            start_state[i] = v
         for i, v in enumerate(flat_goal):
-            goal_state()[i] = v
+            goal_state[i] = v
         pdef.setStartAndGoalStates(start_state, goal_state)
 
         planner = self._make_planner(si)
