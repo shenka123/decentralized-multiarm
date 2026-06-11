@@ -23,7 +23,7 @@ echo "========================================"
 python main.py \
   --mode benchmark \
   --name ${STAMP}_benchmark_multiarm_base \
-  --config $TASKS  \
+  --config $CONFIG \
   --load runs/obstacle_v4/ckpt_multiarm_motion_planner_00000 \
   --max_time 0.5 \
   --num_processes 10 \
