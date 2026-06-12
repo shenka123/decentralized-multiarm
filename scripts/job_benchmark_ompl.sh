@@ -12,34 +12,10 @@ cd ~/decentralized-multiarm
 
 mkdir -p benchmark logs
 
-TASKS=tasks/obstacle_benchmark
+TASKS=tasks/obstacle_evaluate
 CONFIG=configs/evaluate.json
 TIMEOUT=30
 STAMP=$(date +%Y%m%d_%H%M%S)
-
-echo "========================================"
-echo "Running RL Multiarm (base)"
-echo "========================================"
-python main.py \
-  --mode benchmark \
-  --name ${STAMP}_benchmark_multiarm_base \
-  --config $CONFIG \
-  --load runs/obstacle_v4/ckpt_multiarm_motion_planner_00000 \
-  --max_time 0.5 \
-  --num_processes 10 \
-  --tasks_path $TASKS 
-
-echo "========================================"
-echo "Running RL Multiarm (new)"
-echo "========================================"
-python main.py \
-  --mode benchmark \
-  --name ${STAMP}_benchmark_multiarm_new \
-  --config $CONFIG  \
-  --load runs/obstacle_v4/ckpt_multiarm_motion_planner_01431 \
-  --max_time 0.5 \
-  --num_processes 10 \
-  --tasks_path $TASKS 
 
 for PLANNER in RRTConnect RRT BITstar PRM LBKPIECE; do
     echo "========================================"
