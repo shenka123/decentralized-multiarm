@@ -78,6 +78,9 @@ class BaseEnv:
         proximity_config = env_config['reward']['proximity_penalty']
         self.proximity_penalty_distance = proximity_config['max_distance']
         self.proximity_penalty = proximity_config['penalty']
+        obstacle_proximity_config = env_config['reward'].get('obstacle_proximity_penalty', {})
+        self.obstacle_proximity_penalty_distance = obstacle_proximity_config.get('max_distance', 0.0)
+        self.obstacle_proximity_penalty = obstacle_proximity_config.get('penalty', 0.0)
         self.delta_reward = env_config['reward']['delta']
         self.terminate_on_collectively_reach_target = env_config[
             'terminate_on_collectively_reach_target']
@@ -295,6 +298,18 @@ class BaseEnv:
             obs.get_position() for obs in self.active_obs.values()
         ]
 
+        if self.obstacle_proximity_penalty_distance > 0:
+            obs_body_ids = [obs.body_id for obs in self.active_obs.values()]
+            for ur5 in self.active_ur5s:
+                ur5.closest_points_to_obstacles = [
+                    p.getClosestPoints(ur5.body_id, obs_id,
+                                       self.obstacle_proximity_penalty_distance)
+                    for obs_id in obs_body_ids
+                ]
+        else:
+            for ur5 in self.active_ur5s:
+                ur5.closest_points_to_obstacles = []
+
         return self.state
 
     def get_observations(self, state=None, limit=10):
@@ -488,6 +503,14 @@ class BaseEnv:
                  self.proximity_penalty_distance])
             for ur5 in self.active_ur5s])
 
+        obstacle_proximity_penalties = np.array([
+            sum([(1 - pts[0][8] / self.obstacle_proximity_penalty_distance)
+                 * self.obstacle_proximity_penalty
+                 for pts in ur5.closest_points_to_obstacles
+                 if len(pts) > 0 and
+                 pts[0][8] < self.obstacle_proximity_penalty_distance])
+            for ur5 in self.active_ur5s])
+
         collectively_reached_targets = (
             state['reach_count'] == len(self.active_ur5s))
         collective_reached_targets_rewards = np.array(
@@ -496,11 +519,13 @@ class BaseEnv:
               else 0)
              for _ in range(len(self.active_ur5s))])
         self.prev_ur5_ee_residuals = current_ur5_ee_residuals
+        
         ur5_rewards_sum = \
-            collision_penalties + individually_reached_target_rewards +\
+            collision_penalties + individually_reached_target_rewards + \
             collective_reached_targets_rewards + survival_penalties + \
-            proximity_penalties + \
+            proximity_penalties + obstacle_proximity_penalties + \
             delta_position_rewards + delta_orientation_rewards
+            
         if self.centralized_policy:
             return np.array([ur5_rewards_sum.sum()])
         else:
