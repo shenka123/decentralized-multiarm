@@ -11,10 +11,11 @@
 source ~/.bashrc
 
 # Activate conda environment
-conda activate multiarm
+conda activate multiarm2
 
 # Move to project directory
 cd ~/decentralized-multiarm
 
 # Run your scriptpython 
-python omplExpertGenerator.py obstacle_v1 obstacle_v1_bitstar 10s
+python omplExpertGenerator.py obstacle_v1 obstacle_v1_bitstar 10
+#python omplExpertGenerator.py base_test obstacle_v1_bitstar 4
