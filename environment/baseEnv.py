@@ -409,9 +409,9 @@ class BaseEnv:
                 elif key == 'nearest_obstacles':
                     # Get EEF position of this arm
                     eef_pos = np.array(
-                        history[-1]['ur5s'][self.active_ur5s.index(this_ur5)]['end_effector_pose'][0]
+                        history[-1]['ur5s'][ur5_idx]['end_effector_pose'][0]
                     )
-                    
+                                        
                     # Get all active obstacle positions from latest state
                     obstacle_positions = history[-1]['obstacle_positions']
                     
@@ -424,8 +424,7 @@ class BaseEnv:
                     # Take K nearest, pad with sentinel [0, 0, -10] if fewer than K
                     k = self.k_nearest_obstacles
                     nearest = sorted_obstacles[:k]
-                    while len(nearest) < k:
-                        nearest.append([0.0, 0.0, -10.0])  # sentinel: far below workspace
+
                     
                     # Express in this arm's local frame and flatten
                     local_positions = []
@@ -433,6 +432,9 @@ class BaseEnv:
                         local_pos, _ = this_ur5.global_to_ur5_frame(
                             position=np.array(obs_pos), rotation=None)
                         local_positions.extend(local_pos)
+                
+                    while len(local_positions) < k * 3:
+                        local_positions.extend([0.0, 0.0, -10.0]) # sentinel: far below workspace
                     
                     # history=0 means just one frame, wrap in list to match expected format
                     val = [local_positions]
