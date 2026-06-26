@@ -68,7 +68,11 @@ def iter_task_paths(tasks_dir, logs):
     for task_file in iter_json_files(tasks_dir):
         filename = os.path.basename(task_file)
         if filename in logs["runs"]:
-            continue
+            if logs["runs"][filename][:6] == 'failed':
+                continue
+                #pass
+            else:
+                continue
         yield filename, task_file
 
 
