@@ -13,9 +13,10 @@ placements -- it assumes the task files already have a fixed obstacle layout
 (e.g. produced by obstacleGenerator.py / obstacleGeneratorNoRRT.py) and just
 needs a feasible (and, with BIT*, increasingly optimal) path through it.
 
-Progress is tracked in logs/{planner}_{target_name}.json so the script can be
-safely interrupted and resumed -- just re-run with the same args, or pass
---reset to start over.
+Progress is tracked in logs/{planner}_{target_name}.json (or
+logs/{planner}_{target_name}_{partition}.json when --partition is used) so
+the script can be safely interrupted and resumed -- just re-run with the
+same args, or pass --reset to start over.
 
 Usage:
     python omplExpertGenerator.py <task_name> <target_name> <num_workers> [options]
@@ -27,6 +28,19 @@ Examples:
     # Start fresh, 45s planning budget per task, 4 retries before giving up
     python omplExpertGenerator.py obstacle_v1 obstacle_v1_bitstar 10 \
         --reset --timeout 45 --max_attempts 4
+
+    # Re-run, retrying only tasks that previously failed
+    # (tasks already marked "success" are left alone and never replanned)
+    python omplExpertGenerator.py obstacle_v1 obstacle_v1_bitstar 10 \
+        --retry_failed
+
+    # Split work across two parallel SLURM jobs by task-id parity
+    # (each partition gets its own log file, so they don't stomp on
+    # each other's progress)
+    python omplExpertGenerator.py obstacle_v1 obstacle_v1_bitstar 10 \
+        --partition odd
+    python omplExpertGenerator.py obstacle_v1 obstacle_v1_bitstar 10 \
+        --partition even
 
 Then point training at the result (note the trailing slash, since
 RRTSupervisionEnv concatenates expert_root_dir + task_id + ".npy" directly):
@@ -44,10 +58,10 @@ job_benchmark_ompl.sh.
 import argparse
 import json
 import os
+import re
 
 import numpy as np
 import ray
-from tqdm import tqdm
 
 from environment.rrt.omplWrapper import OMPLWrapper
 from environment.tasks import Task
@@ -62,17 +76,37 @@ def iter_json_files(root):
                 yield entry.path
 
 
-def iter_task_paths(tasks_dir, logs):
+def iter_task_paths(tasks_dir, logs, retry_failed=False, partition=None):
     """Streaming generator -- only file *paths* are held in memory at once;
-    the task JSON itself is only loaded once a worker is ready for it."""
+    the task JSON itself is only loaded once a worker is ready for it.
+
+    retry_failed: when False (default), any filename already present in
+        logs["runs"] is skipped, whether it previously succeeded or failed.
+        When True, entries logged as "failed:*" are re-queued; entries
+        logged as "success:*" are still skipped.
+    partition: None / 'odd' / 'even' -- restricts to tasks whose numeric id
+        has the matching parity (e.g. '01234.json' -> 1234 -> even), for
+        splitting work across parallel jobs. Filenames with no digits never
+        match an odd/even partition, since there's no id to take parity from.
+    """
     for task_file in iter_json_files(tasks_dir):
         filename = os.path.basename(task_file)
+
+        if partition is not None:
+            match = re.search(r'\d+', os.path.splitext(filename)[0])
+            if match is None:
+                continue
+            parity = int(match.group()) % 2
+            if partition == 'odd' and parity == 0:
+                continue
+            if partition == 'even' and parity == 1:
+                continue
+
         if filename in logs["runs"]:
-            if logs["runs"][filename][:6] == 'failed':
+            is_failed = logs["runs"][filename][:6] == 'failed'
+            if not (retry_failed and is_failed):
                 continue
-                #pass
-            else:
-                continue
+
         yield filename, task_file
 
 
@@ -99,11 +133,18 @@ def generate_experts(
         max_attempts=3,
         num_workers=10,
         reset=False,
-        gui=False):
+        gui=False,
+        retry_failed=False,
+        partition=None):
 
     tasks_dir = f'tasks/{task_name}/'
     experts_dir = f'experts/{target_name}/'
     logs_file = f'logs/{planner_name.lower()}_{target_name}.json'
+    if partition is not None:
+        # Separate log file per partition so two parallel SLURM jobs
+        # (e.g. --partition odd / --partition even) don't race on the
+        # same progress file.
+        logs_file = f'logs/{planner_name.lower()}_{target_name}_{partition}.json'
 
     if not os.path.exists(tasks_dir):
         print(f"[ERROR] tasks dir not found: {tasks_dir}")
@@ -131,9 +172,6 @@ def generate_experts(
     for d in [experts_dir, 'logs/', 'temp/']:
         os.makedirs(d, exist_ok=True)
 
-    total_tasks = sum(1 for _ in iter_json_files(tasks_dir))
-    print(f"Found {total_tasks} task files in {tasks_dir}")
-
     print("Initializing Ray...")
     ray.init()
 
@@ -144,11 +182,10 @@ def generate_experts(
         for _ in range(num_workers)
     ]
 
-    pending = iter_task_paths(tasks_dir, logs)
+    pending = iter_task_paths(
+        tasks_dir, logs, retry_failed=retry_failed, partition=partition)
     worker_state = {}
     done_count = 0
-    pbar = tqdm(total=total_tasks, initial=len(logs["runs"]),
-                dynamic_ncols=True, smoothing=0.05)
 
     def already_done(task_id):
         return os.path.exists(os.path.join(experts_dir, f'{task_id}.npy'))
@@ -165,7 +202,6 @@ def generate_experts(
                 logs["runs"][filename] = "error:0"
                 logs["stats"]["processed"] += 1
                 logs["stats"]["errors"] += 1
-                pbar.update(1)
                 continue
 
             # belt-and-suspenders: if the npy already exists (e.g. logs
@@ -174,7 +210,6 @@ def generate_experts(
                 logs["runs"][filename] = "success:0"
                 logs["stats"]["processed"] += 1
                 logs["stats"]["success"] += 1
-                pbar.update(1)
                 continue
 
             future = worker.plan_from_task.remote(task, timeout=timeout)
@@ -227,7 +262,6 @@ def generate_experts(
                 logs["stats"]["processed"] += 1
                 logs["stats"]["errors"] += 1
                 done_count += 1
-                pbar.update(1)
                 del worker_state[worker]
                 assign_next_task(worker)
                 continue
@@ -244,10 +278,6 @@ def generate_experts(
             logs["stats"]["processed"] += 1
             logs["stats"]["success"] += 1
             done_count += 1
-            pbar.update(1)
-            pbar.set_description(
-                f'success={logs["stats"]["success"]} '
-                f'failed={logs["stats"]["failed"]}')
             del worker_state[worker]
             assign_next_task(worker)
         else:
@@ -258,11 +288,9 @@ def generate_experts(
                 logs["stats"]["processed"] += 1
                 logs["stats"]["failed"] += 1
                 done_count += 1
-                pbar.update(1)
                 del worker_state[worker]
                 assign_next_task(worker)
 
-    pbar.close()
     dump_json(logs, logs_file)
 
     s = logs["stats"]
@@ -302,6 +330,16 @@ if __name__ == "__main__":
                         help="ignore existing logs/outputs, start fresh")
     parser.add_argument("--gui", action="store_true",
                         help="visualize planning (slow -- use num_workers 1)")
+    parser.add_argument("--retry_failed", action="store_true", default=False,
+                        help="re-queue tasks previously logged as failed "
+                             "(default: leave all previously-processed "
+                             "tasks, success or failed, alone)")
+    parser.add_argument("--partition", default=None,
+                        choices=["odd", "even"],
+                        help="only process tasks whose numeric id "
+                             "('01234.json' -> 1234) has this parity -- "
+                             "use to split work across parallel jobs "
+                             "(default: process all tasks)")
     args = parser.parse_args()
 
     generate_experts(
@@ -314,4 +352,6 @@ if __name__ == "__main__":
         num_workers=args.num_workers,
         reset=args.reset,
         gui=args.gui,
+        retry_failed=args.retry_failed,
+        partition=args.partition,
     )
