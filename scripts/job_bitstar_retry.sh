@@ -17,5 +17,5 @@ conda activate multiarm2
 cd ~/decentralized-multiarm
 
 # Run your scriptpython 
-python omplExpertGenerator.py obstacle_v1 obstacle_v1_bitstar 10 --retry_failed
+python omplExpertGenerator.py obstacle_v1 obstacle_v1_bitstar 10 --retry_failed --max_attempts 5 --timeout 60
 #python omplExpertGenerator.py base_test obstacle_v1_bitstar 4
