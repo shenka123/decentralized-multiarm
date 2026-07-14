@@ -18,7 +18,7 @@ cd ~/decentralized-multiarm
 
 
 # ---- EDIT THESE PATHS ----
-DIR_A="/experts/obstacle_v1/"
+DIR_A="experts/obstacle_v1/"
 DIR_B="experts/obstacle_v1_bitstar/"
 # ---------------------------
 
