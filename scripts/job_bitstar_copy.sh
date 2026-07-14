@@ -44,7 +44,7 @@ fi
 
 RSYNC_LOG=$(mktemp)
 
-rsync -ai --ignore-existing --dry-run "$DIR_A"/ "$DIR_B"/ | tee "$RSYNC_LOG"
+rsync -ai --ignore-existing "$DIR_A"/ "$DIR_B"/ | tee "$RSYNC_LOG"
 
 # Count results.
 # Itemized lines for a copied regular file look like: ">f+++++++++ filename"
