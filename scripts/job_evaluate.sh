@@ -10,7 +10,7 @@
 
 source ~/.bashrc
 
-conda activate multiarm
+conda activate multiarm2
 cd ~/decentralized-multiarm
 
 
