@@ -23,7 +23,7 @@ python main.py \
   --mode benchmark \
   --name benchmark_multiarm \
   --config configs/obstacle_v1_short.json \
-  --load runs/obstacle_v3/ckpt_multiarm_motion_planner_01175 \
+  --load runs/obstacle_v5/ckpt_multiarm_motion_planner_00370 \
   --max_time 3 \
   --num_processes 10 \
   --tasks_path tasks/obstacle_evaluate \
@@ -34,7 +34,7 @@ python main.py \
   --mode benchmark \
   --name benchmark_multiarm_dense \
   --config configs/obstacle_v1_short.json \
-  --load runs/obstacle_v3/ckpt_multiarm_motion_planner_01725 \
+  --load runs/obstacle_v5/ckpt_multiarm_motion_planner_00370 \
   --max_time 3 \
   --num_processes 10 \
   --tasks_path tasks/obstacle evaluate \
