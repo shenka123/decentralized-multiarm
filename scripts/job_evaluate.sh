@@ -37,5 +37,5 @@ python main.py \
   --load runs/obstacle_v5/ckpt_multiarm_motion_planner_00370 \
   --max_time 3 \
   --num_processes 10 \
-  --tasks_path tasks/obstacle evaluate \
+  --tasks_path tasks/obstacle_evaluate \
   --gui
