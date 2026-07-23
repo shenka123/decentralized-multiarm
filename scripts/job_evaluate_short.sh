@@ -13,27 +13,24 @@ source ~/.bashrc
 conda activate multiarm2
 cd ~/decentralized-multiarm
 
-
-python -c "import torch; print(torch.cuda.is_available(), torch.version.cuda)"
-
 module load cuda/12.8.0 
 python -c "import torch; print(torch.cuda.is_available(), torch.version.cuda)"
 
 python main.py \
   --mode benchmark \
-  --name $(date +%Y%m%d%H%M%S)_benchmark_short_multiarm \
+  --name $(date +%Y%m%d_%H%M%S)_benchmark_short_multiarm \
   --config configs/obstacle_v1_short.json \
-  --load runs/obstacle_v5/ckpt_multiarm_motion_planner_00370 \
-  --max_time 0.5 \
+  --load runs/obstacle_v5/ckpt_multiarm_motion_planner_00637 \
+  --max_time 1 \
   --num_processes 10 \
   --tasks_path tasks/obstacle_evaluate
 
   
 python main.py \
   --mode benchmark \
-  --name $(date +%Y%m%d%H%M%S)_benchmark_short_multiarm_dense \
+  --name $(date +%Y%m%d_%H%M%S)_benchmark_short_multiarm_dense \
   --config configs/obstacle_v1_short.json \
-  --load runs/obstacle_v5/ckpt_multiarm_motion_planner_00370 \
-  --max_time 0.5 \
+  --load runs/obstacle_v5/ckpt_multiarm_motion_planner_00637 \
+  --max_time 1 \
   --num_processes 10 \
   --tasks_path tasks/obstacle_evaluate
