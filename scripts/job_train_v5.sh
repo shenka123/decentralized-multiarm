@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=dma-train
-#SBATCH --partition=MGPU-TC2
-#SBATCH --qos=q_m1x24
+#SBATCH --partition=MGPU-TC2s
 #SBATCH --output=logs/train_v5_%j.out
 #SBATCH --error=logs/train_v5_%j.err
 #SBATCH --ntasks=1
