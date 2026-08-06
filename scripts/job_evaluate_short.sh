@@ -20,7 +20,7 @@ python main.py \
   --mode benchmark \
   --name $(date +%Y%m%d_%H%M%S)_benchmark_short_multiarm \
   --config configs/obstacle_v1_short.json \
-  --load runs/obstacle_v5/ckpt_multiarm_motion_planner_00859 \
+  --load runs/obstacle_v5/ckpt_multiarm_motion_planner_01032 \
   --max_time 1 \
   --num_processes 10 \
   --tasks_path tasks/obstacle_evaluate
