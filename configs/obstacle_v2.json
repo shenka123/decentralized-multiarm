@@ -39,7 +39,7 @@
         },
         "action_variance": {
             "max": 0.1,
-            "min": 1e-08,
+            "min": 1e-03,
             "log": true
         },
         "centralized_policy": false,
@@ -50,7 +50,7 @@
             "q_lr": 0.001,
             "discount": 0.99,
             "tau": 0.001,
-            "alpha": 0.001,
+            "alpha": 0.01,
             "batch_size": 4096,
             "warmup_timesteps": 20000.0,
             "memory_cluster_capacity": 50000.0,
