@@ -3,14 +3,17 @@ from pathlib import Path
 from os.path import abspath
 from random import shuffle as shuffle_f
 from .UR5 import Robotiq2F85Target
-import ray
 from os.path import basename, exists
 from numpy.linalg import norm
 from .utils import Target
-from time import sleep
 from decimal import Decimal
 from itertools import product
 import numpy as np
+
+
+class TasksExhausted(Exception):
+    """Raised when a non-repeating TaskLoader has no tasks left to give out."""
+    pass
 
 
 def drange(x, y, jump):
@@ -247,6 +250,7 @@ class TaskManager:
         return start + t * (np.array(end) - start)
 
     def set_timer(self, timer):
+        import ray
         if self.static_tasks:
             return
         if timer == 0.0:
@@ -285,10 +289,14 @@ class TaskManager:
                         min_task_ur5s_count,
                         max_task_difficulty,
                         min_task_difficulty):
+        import ray
         if self.use_task_loader:
             while True:
-                self.current_task = ray.get(
+                next_task = ray.get(
                     self.task_loader.get_next_task.remote())
+                if next_task is None:
+                    raise TasksExhausted()
+                self.current_task = next_task
                 task_difficulty = self.current_task.difficulty
                 if self.current_task.ur5_count <= max_task_ur5s_count \
                     and self.current_task.ur5_count >= min_task_ur5s_count \
@@ -377,9 +385,8 @@ class TaskLoader:
     def get_next_task(self):
         if self.current_idx >= len(self.files)\
                 and not self.repeat:
-            print("[TargetLoader] Out of targets")
-            while True:
-                sleep(5)
+            print("[TaskLoader] Out of targets")
+            return None
         current_file = self.files[self.current_idx]
         self.current_idx = self.current_idx + 1
         if self.repeat:

@@ -6,6 +6,7 @@ experts/
 logs/
 runs/
 temp/
+webapp/
 
 .vscode/
 .vim/

@@ -6,6 +6,7 @@ from utils import (
     setup,
     exit_handler,
     mkdir_and_save_config)
+from environment.tasks import TasksExhausted
 from os.path import exists, basename, abspath, dirname
 from time import time
 from copy import copy
@@ -49,46 +50,50 @@ def step_env(all_envs, ready_envs, ready_actions, remaining_observations):
 def simulate(args, config):
     # Set up pybullet env and policies
     envs, policy_manager, keep_alive = setup(args, config)
-    signal(SIGINT, lambda sig, frame: exit_handler(
-        [value['exit_handler'] for key, value in keep_alive.items()
-         if value['exit_handler'] is not None]))
+    handlers = [value['exit_handler'] for key, value in keep_alive.items()
+                if value['exit_handler'] is not None]
+    signal(SIGINT, lambda sig, frame: exit_handler(handlers))
 
-    observations = ray.get([e.reset.remote() for e in envs])
-    observations = [obs for obs, _ in observations]
+    try:
+        observations = ray.get([e.reset.remote() for e in envs])
+        observations = [obs for obs, _ in observations]
 
-    inference_policies = policy_manager.get_inference_nodes()
-    multiarm_motion_planner = inference_policies['multiarm_motion_planner']
-    if args.mode == 'benchmark':
-        multiarm_motion_planner.deterministic = True
-
-    remaining_observations = []
-    ready_envs = copy(envs)
-    start_time = time()
-
-    while True:
-        t0 = time()
-        env_actions = [multiarm_motion_planner.act(
-            observation['multiarm_motion_planner'])
-            for observation in observations]
-        ready_envs, observations, remaining_observations = step_env(
-            all_envs=envs,
-            ready_envs=ready_envs,
-            ready_actions=env_actions,
-            remaining_observations=remaining_observations)
-        
-        
-        planning_elapsed = time() - t0
-        per_env_planning = planning_elapsed / max(len(ready_envs), 1)
-
+        inference_policies = policy_manager.get_inference_nodes()
+        multiarm_motion_planner = inference_policies['multiarm_motion_planner']
         if args.mode == 'benchmark':
-            for env in ready_envs:
-                env.record_planning_time.remote(per_env_planning)
-                
-        if args.max_time:
-            if time() - start_time >= args.max_time*60*60 - 10*60:  
-                print("Max time reached.")
-                break
-        #print('\r{:02d}'.format(len(observations)), end='')
+            multiarm_motion_planner.deterministic = True
+
+        remaining_observations = []
+        ready_envs = copy(envs)
+        start_time = time()
+
+        while True:
+            t0 = time()
+            env_actions = [multiarm_motion_planner.act(
+                observation['multiarm_motion_planner'])
+                for observation in observations]
+            ready_envs, observations, remaining_observations = step_env(
+                all_envs=envs,
+                ready_envs=ready_envs,
+                ready_actions=env_actions,
+                remaining_observations=remaining_observations)
+
+
+            planning_elapsed = time() - t0
+            per_env_planning = planning_elapsed / max(len(ready_envs), 1)
+
+            if args.mode == 'benchmark':
+                for env in ready_envs:
+                    env.record_planning_time.remote(per_env_planning)
+
+            if args.max_time:
+                if time() - start_time >= args.max_time*60*60 - 10*60:
+                    print("Max time reached.")
+                    break
+            #print('\r{:02d}'.format(len(observations)), end='')
+    except TasksExhausted:
+        print("All tasks completed — saving results and exiting.")
+        exit_handler(handlers)
 
 
 if __name__ == "__main__":
