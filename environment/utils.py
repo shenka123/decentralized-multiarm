@@ -1,4 +1,3 @@
-from torch import FloatTensor
 from itertools import chain
 from numpy.linalg import norm
 from math import acos, cos, sin
@@ -148,6 +147,7 @@ def compute_actions_to_waypoint(
         waypoint,
         centralized_policy=False,
         action_type='delta'):
+    from torch import FloatTensor
     if not centralized_policy:
         waypoints = np.split(np.array(waypoint), len(ur5s))
         if action_type == 'target-norm':
