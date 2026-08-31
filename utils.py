@@ -83,8 +83,10 @@ def parse_args():
     parser.add_argument('--num_processes', type=int,
                         default=16, help='How many processes to parallelize')
     parser.add_argument('--curriculum_level', type=int,
-                        default=0,
-                        help='Which level of the curriculum to start training')
+                        default=None,
+                        help='Which level of the curriculum to start training.' +
+                        ' If not set, resumes from the level saved in the' +
+                        ' run\'s logdir, or 0 if none was saved yet.')
     parser.add_argument('--mode',
                         choices=[
                             # 1. Train behaviour clone on expert trajectories
@@ -275,8 +277,8 @@ class Logger:
                  benchmark_name=None):
         self.benchmark_mode = benchmark_mode
         self.benchmark_name = benchmark_name
+        self.logdir = logdir
         if self.benchmark_mode:
-            self.logdir = logdir
             self.benchmark_scores = []
         else:
             self.writer = SummaryWriter(logdir)
@@ -346,7 +348,14 @@ class Logger:
         if self.get_average_success_rate() > self.graduation_threshold:
             self.curriculum_level += 1
             self.success_rate_history = []
+            self.save_curriculum_level()
         return self.curriculum_level
+
+    def save_curriculum_level(self):
+        if self.benchmark_mode:
+            return
+        path = "{}/curriculum_level.json".format(self.logdir)
+        dump({'curriculum_level': self.curriculum_level}, open(path, 'w'))
 
     def get_average_success_rate(self):
         if len(self.success_rate_history) < 50:
@@ -448,11 +457,21 @@ def prepare_logger(args, config):
         logdir = "runs/" + args.name
         if not exists(logdir):
             mkdir(logdir)
+        curriculum_level = args.curriculum_level
+        if curriculum_level is None:
+            curriculum_level_path = logdir + '/curriculum_level.json'
+            if exists(curriculum_level_path):
+                curriculum_level = load(
+                    open(curriculum_level_path))['curriculum_level']
+                print("[Setup] Resuming curriculum at level {}".format(
+                    curriculum_level))
+            else:
+                curriculum_level = 0
         logger = Logger.remote(
             logdir=logdir,
             graduation_threshold=config[
                 'environment']['curriculum']['graduation_threshold'],
-            curriculum_level=args.curriculum_level)
+            curriculum_level=curriculum_level)
         dump(config, open(logdir + '/config.json', 'w'), indent=4)
     elif args.mode == 'benchmark':
         benchmark_dir = f"benchmark"

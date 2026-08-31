@@ -8,6 +8,7 @@ from .utils import ReplayBufferDataset
 from time import time
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
+from os.path import exists
 
 torch.multiprocessing.set_start_method('spawn', force=True)
 torch.multiprocessing.set_sharing_strategy('file_system')
@@ -35,7 +36,11 @@ class SACLearner(BaseRLAlgo):
         self.q_lr = algo_config["q_lr"]
         self.tau = algo_config["tau"]
         self.discount = algo_config["discount"]
-        self.alpha = algo_config["alpha"]
+        self.alpha_config = algo_config["alpha"]
+        self.auto_alpha = isinstance(self.alpha_config, str) \
+            and self.alpha_config.lower() == "auto"
+        self.alpha = None if self.auto_alpha else float(self.alpha_config)
+        self.alpha_lr = algo_config.get("alpha_lr", algo_config["pi_lr"])
         self.reparametrize = True
         self.reward_scale = 1.0
         self.num_updates_per_train = algo_config["num_updates_per_train"]
@@ -72,6 +77,17 @@ class SACLearner(BaseRLAlgo):
             lr=self.q_lr,
             betas=(0.9, 0.999))
 
+        self.log_alpha = None
+        self.alpha_optimizer = None
+        self.target_entropy = None
+        if self.auto_alpha:
+            self.log_alpha = torch.zeros(
+                1, requires_grad=True, device=self.device)
+            self.alpha_optimizer = Adam(
+                [self.log_alpha],
+                lr=self.alpha_lr,
+                betas=(0.9, 0.999))
+
         if load_path is not None:
             print("[SAC] loading networks from ", load_path)
             checkpoint = torch.load(load_path, map_location=self.device)
@@ -84,10 +100,26 @@ class SACLearner(BaseRLAlgo):
             self.policy_opt.load_state_dict(networks['policy_opt'])
             self.Q1_opt.load_state_dict(networks['Q1_opt'])
             self.Q2_opt.load_state_dict(networks['Q2_opt'])
+            if self.auto_alpha and networks.get('log_alpha') is not None:
+                with torch.no_grad():
+                    self.log_alpha.copy_(networks['log_alpha'])
+                if networks.get('alpha_optimizer') is not None:
+                    self.alpha_optimizer.load_state_dict(
+                        networks['alpha_optimizer'])
             self.stats['time_steps'] = checkpoint['stats']['time_steps']
             self.stats['update_steps'] = checkpoint['stats']['update_steps']
             print("[SAC] Continuing from time step ", self.stats['time_steps'],
                   " and update step ", self.stats['update_steps'])
+
+        if load_path is not None and self.logdir is not None:
+            replay_buffer_path = "{}/replay_buffer.pt".format(self.logdir)
+            if exists(replay_buffer_path):
+                print("[SAC] loading replay buffer from ",
+                      replay_buffer_path)
+                buffer_data = torch.load(
+                    replay_buffer_path, map_location=self.device)
+                self._init_replay_buffer(buffer_data)
+
         self.memory_cluster = MemoryCluster.remote(
             memory_fields=['next_observations'],
             init_time_steps=self.stats['time_steps'])
@@ -104,16 +136,7 @@ class SACLearner(BaseRLAlgo):
             if data is None:
                 return
             if self.replay_buffer is None:
-                self.replay_buffer = ReplayBufferDataset(
-                    data=data,
-                    device=self.device,
-                    capacity=self.memory_cluster_capacity)
-                self.train_loader = DataLoader(
-                    self.replay_buffer,
-                    batch_size=self.batch_size,
-                    shuffle=True,
-                    drop_last=True,
-                    num_workers=0)
+                self._init_replay_buffer(data)
             else:
                 self.replay_buffer.extend(data)
         self.register_async_task(
@@ -123,6 +146,18 @@ class SACLearner(BaseRLAlgo):
         )
         self.Q_criterion = torch.nn.MSELoss()
         self.prev_update_time = time()
+
+    def _init_replay_buffer(self, data):
+        self.replay_buffer = ReplayBufferDataset(
+            data=data,
+            device=self.device,
+            capacity=self.memory_cluster_capacity)
+        self.train_loader = DataLoader(
+            self.replay_buffer,
+            batch_size=self.batch_size,
+            shuffle=True,
+            drop_last=True,
+            num_workers=0)
 
     def get_policy_parameters(self):
         return self.policy.state_dict()
@@ -215,6 +250,8 @@ class SACLearner(BaseRLAlgo):
         q2_loss_sum = 0.0
         policy_entropy_sum = 0.0
         policy_value_sum = 0.0
+        alpha_sum = 0.0
+        alpha_loss_sum = 0.0
 
         train_loader_it = iter(self.train_loader)
         for i in range(self.num_updates_per_train):
@@ -222,13 +259,15 @@ class SACLearner(BaseRLAlgo):
             if batch is None:
                 train_loader_it = iter(self.train_loader)
                 batch = next(train_loader_it, None)
-            policy_loss, q1_loss, q2_loss, policy_entropy, policy_value = \
-                self.train_batch(batch=batch)
+            policy_loss, q1_loss, q2_loss, policy_entropy, policy_value, \
+                alpha, alpha_loss = self.train_batch(batch=batch)
             policy_loss_sum += policy_loss
             q1_loss_sum += q1_loss
             q2_loss_sum += q2_loss
             policy_entropy_sum += policy_entropy
             policy_value_sum += policy_value
+            alpha_sum += alpha
+            alpha_loss_sum += alpha_loss
             self.update_targets()
             self.stats['update_steps'] += 1
             if self.stats['update_steps'] % self.save_interval == 0:
@@ -239,6 +278,8 @@ class SACLearner(BaseRLAlgo):
         q2_loss_sum /= self.num_updates_per_train
         policy_entropy_sum /= self.num_updates_per_train
         policy_value_sum /= self.num_updates_per_train
+        alpha_sum /= self.num_updates_per_train
+        alpha_loss_sum /= self.num_updates_per_train
 
         self.log_scalars({
             'Training/Policy_Loss': policy_loss_sum,
@@ -247,6 +288,8 @@ class SACLearner(BaseRLAlgo):
             'Training/Q1_Loss': q1_loss_sum,
             'Training/Q2_Loss': q2_loss_sum,
             'Training/Freshness': self.replay_buffer.freshness,
+            'Training/Alpha': alpha_sum,
+            'Training/Alpha_Loss': alpha_loss_sum,
         })
 
         output = "\r[SAC] pi: {0:.4f} | pi_entropy: {1:.4f}".format(
@@ -298,13 +341,32 @@ class SACLearner(BaseRLAlgo):
             self.Q2(obs=critic_obs, actions=new_obs_actions *
                     self.action_scaling))
 
+        if self.auto_alpha:
+            if self.target_entropy is None:
+                self.target_entropy = -float(actions.shape[-1])
+            alpha = self.log_alpha.exp()
+        else:
+            alpha = self.alpha
+
         # Train policy
-        policy_loss = (self.alpha * new_obs_action_logprobs -
+        alpha_for_policy = alpha.detach() if self.auto_alpha else alpha
+        policy_loss = (alpha_for_policy * new_obs_action_logprobs -
                        q_new_actions).mean()
 
         self.policy_opt.zero_grad()
         policy_loss.backward(retain_graph=True)
         self.policy_opt.step()
+
+        # Train alpha (SAC automatic entropy tuning)
+        alpha_loss = torch.zeros(1)
+        if self.auto_alpha:
+            alpha_loss = -(self.log_alpha * (
+                new_obs_action_logprobs.detach() +
+                self.target_entropy)).mean()
+            self.alpha_optimizer.zero_grad()
+            alpha_loss.backward()
+            self.alpha_optimizer.step()
+            alpha = self.log_alpha.exp().detach()
 
         # Train Q networks
         q1_pred = self.Q1(obs=critic_obs, actions=actions *
@@ -312,12 +374,13 @@ class SACLearner(BaseRLAlgo):
         q2_pred = self.Q2(obs=critic_obs, actions=actions *
                           self.action_scaling)
 
+        alpha_for_target = alpha.detach() if self.auto_alpha else alpha
         target_q_values = torch.min(
             self.Q1_target(critic_next_obs, new_next_obs_action *
                            self.action_scaling),
             self.Q2_target(critic_next_obs, new_next_obs_action *
                            self.action_scaling)) \
-            - (self.alpha * next_obs_action_logprobs)
+            - (alpha_for_target * next_obs_action_logprobs)
         with torch.no_grad():
             q_target = self.reward_scale * rewards + (1. - terminals) * \
                 self.discount * target_q_values
@@ -338,7 +401,10 @@ class SACLearner(BaseRLAlgo):
             q1_loss.item(),
             q2_loss.item(),
             -new_obs_action_logprobs.mean().item(),
-            q_new_actions.detach().mean().item()
+            q_new_actions.detach().mean().item(),
+            float(alpha.item() if torch.is_tensor(alpha) else alpha),
+            float(alpha_loss.item()
+                  if torch.is_tensor(alpha_loss) else alpha_loss)
         )
 
     def get_state_dicts_to_save(self):
@@ -351,7 +417,23 @@ class SACLearner(BaseRLAlgo):
             'policy_opt': self.policy_opt.state_dict(),
             'Q1_opt': self.Q1_opt.state_dict(),
             'Q2_opt': self.Q2_opt.state_dict(),
+            'log_alpha': self.log_alpha.detach()
+            if self.auto_alpha else None,
+            'alpha_optimizer': self.alpha_optimizer.state_dict()
+            if self.auto_alpha else None,
         }
+
+    def save(self):
+        super().save()
+        self.save_replay_buffer()
+
+    def save_replay_buffer(self):
+        if not self.training or self.logdir is None \
+                or self.replay_buffer is None:
+            return
+        output_path = "{}/replay_buffer.pt".format(self.logdir)
+        torch.save(self.replay_buffer.data, output_path)
+        print("[SAC] saved replay buffer at {}".format(output_path))
 
     def log_scalars(self, scalars_dict):
         ray.get(self.writer.add_scalars.remote(

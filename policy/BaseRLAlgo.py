@@ -13,6 +13,7 @@ class BaseRLAlgo:
         self.writer = writer
         self.policy_key = policy_key
         self.training = training
+        self.logdir = None
         if self.writer is not None:
             self.logdir = ray.get(self.writer.get_logdir.remote())
         else:
