@@ -88,8 +88,8 @@ def simulate(args, config):
 
             if args.max_time:
                 if time() - start_time >= args.max_time*60*60 - 10*60:
-                    print("Max time reached.")
-                    break
+                    print("Max time reached — saving results and exiting.")
+                    exit_handler(handlers)
             #print('\r{:02d}'.format(len(observations)), end='')
     except TasksExhausted:
         print("All tasks completed — saving results and exiting.")

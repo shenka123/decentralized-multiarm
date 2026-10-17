@@ -1,0 +1,19 @@
+{
+    "tasks_path": "tasks/obstacle_evaluate",
+    "config": "configs/evaluate.json",
+    "num_processes": 10,
+    "max_time": 1,
+    "checkpoints": [
+        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00609",
+        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00500",
+        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00403",
+        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00300",
+        "runs/obstacle_v7_1/ckpt_multiarm_motion_planner_00228",
+        "runs/obstacle_v8/ckpt_multiarm_motion_planner_00296",
+        "runs/obstacle_v9/ckpt_multiarm_motion_planner_00185",
+        "runs/obstacle_v3/ckpt_multiarm_motion_planner_01753",
+        "runs/obstacle_v4/ckpt_multiarm_motion_planner_01500",
+        "runs/obstacle_v5/ckpt_multiarm_motion_planner_00992",
+        "runs/obstacle_v6/ckpt_multiarm_motion_planner_00321"
+    ]
+}
