@@ -15,6 +15,7 @@ from .utils import (
     pos_to_high_freq_pos
 )
 from .tasks import TaskManager
+from .obstacle_motion import ObstacleMotion
 from policy import Memory
 
 
@@ -188,6 +189,24 @@ class BaseEnv:
         
         self.active_obs = {}
         self.enable_obstacles()
+
+        # Moving obstacles (evaluation only): {obs_id: ObstacleMotion}
+        self.obs_motions = {}
+        self.sim_time = 0.0
+
+    def setup_obstacle_motions(self, task):
+        self.sim_time = 0.0
+        self.obs_motions = {}
+        for obs_id in self.active_obs:
+            motion = ObstacleMotion.from_task(
+                task.obstacle_motion, obs_id, task.obstacles[obs_id])
+            if motion is not None:
+                self.obs_motions[obs_id] = motion
+
+    def update_obstacles(self):
+        for obs_id, motion in self.obs_motions.items():
+            self.active_obs[obs_id].set_position(
+                motion.position_at(self.sim_time))
 
     def disable_all_obstacles(self):
         for i, (obs_id, obs) in enumerate(self.all_obs.items()):
@@ -559,6 +578,8 @@ class BaseEnv:
         self.handle_actions(actions)
 
         for t_sim in range(self.simulation_steps_per_action_step):
+            self.sim_time += BaseEnv.SIMULATION_TIMESTEP
+            self.update_obstacles()
             p.stepSimulation()
 
             for ur5 in self.active_ur5s:
@@ -747,8 +768,9 @@ class BaseEnv:
             ur5.step()
 
         self.enable_obstacles(obs_list=self.get_current_task().obstacles.keys())
-        for id, obs in self.active_obs.items(): 
+        for id, obs in self.active_obs.items():
             obs.set_position(self.get_current_task().obstacles[id])
+        self.setup_obstacle_motions(self.get_current_task())
 
 
         assert len(self.memory_cluster_map) == 1

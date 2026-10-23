@@ -29,6 +29,7 @@ class Task:
                  start_config,
                  goal_config,
                  obstacles=None,
+                 obstacle_motion=None,
                  difficulty=None,
                  dynamic_speed=None,
                  start_goal_config=None,
@@ -40,6 +41,8 @@ class Task:
             self.obstacles = {}
         else:
             self.obstacles = obstacles
+        # None means obstacles are static
+        self.obstacle_motion = obstacle_motion
         self.start_goal_config = start_goal_config  # for dynamic tasks
         if self.start_goal_config is None:
             self.start_goal_config = [None for _ in goal_config]
@@ -123,6 +126,7 @@ class Task:
             'goal_config': [list(c) for c in self.goal_config],
             'base_poses': self.base_poses,
             'obstacles': self.obstacles,
+            'obstacle_motion': self.obstacle_motion,
             'difficulty': self.difficulty,
             'dynamic_speed': self.dynamic_speed,
             'ur5_count': self.ur5_count,
@@ -148,6 +152,7 @@ class Task:
             obstacles=None 
             if 'obstacles' not in task_file
             else task_file['obstacles'],
+            obstacle_motion=task_file.get('obstacle_motion'),
             difficulty=None
             if 'difficulty' not in task_file
             else task_file['difficulty'],

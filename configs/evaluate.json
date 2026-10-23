@@ -99,23 +99,23 @@
         "obstacles": {
             "s1": {
                 "type": "Sphere",
-                "radius": 0.1
+                "radius": 0.07
             },
             "s2": {
                 "type": "Sphere",
-                "radius": 0.1
+                "radius": 0.07
             },
             "s3": {
                 "type": "Sphere",
-                "radius": 0.1
+                "radius": 0.07
             },
             "s4": {
                 "type": "Sphere",
-                "radius": 0.1
+                "radius": 0.07
             },
             "s5": {
                 "type": "Sphere",
-                "radius": 0.1
+                "radius": 0.07
             }
         },
         "task": {
