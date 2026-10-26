@@ -5,6 +5,10 @@ Each checkpoint is benchmarked by running `main.py --mode benchmark` in its own
 subprocess (fresh ray instance per checkpoint), then a summary csv is built
 from the per-checkpoint detail files.
 
+Entries with a "planner" key instead of "path" are OMPL baselines, run through
+`benchmark.py` (BITstar, RRTConnect (= BiRRT), RRT, PRM, LBKPIECE). They use
+"timeout" (per-task planning budget in seconds, default 30) and need "config".
+
 Usage:
     python bulk_evaluate.py configs/bulk_evaluate.json
 
@@ -20,7 +24,9 @@ Checkpoint list format (per-checkpoint keys override the top-level defaults):
                 "name": "v5_992_dense",
                 "path": "runs/obstacle_v5/ckpt_multiarm_motion_planner_00992",
                 "tasks_path": "tasks/obstacle_evaluate_dense"
-            }
+            },
+            {"planner": "BITstar", "timeout": 30},
+            {"name": "ompl_birrt", "planner": "RRTConnect"}
         ]
     }
 
@@ -51,11 +57,16 @@ DEFAULTS = {
     'num_processes': 10,
     'max_time': None,
     'gui': False,
+    'timeout': 30.0,
 }
+
+OMPL_PLANNERS = ['RRTConnect', 'RRT', 'BITstar', 'PRM', 'LBKPIECE']
+OMPL_DEFAULT_NAMES = {'RRTConnect': 'ompl_birrt', 'BITstar': 'ompl_bitstar'}
 
 SUMMARY_FIELDS = [
     'run_timestamp',
     'name',
+    'method',
     'checkpoint',
     'config',
     'tasks_path',
@@ -116,10 +127,27 @@ def load_jobs(checkpoint_list_path):
             entry = {'path': entry}
         job = dict(defaults)
         job.update(entry)
-        if job['tasks_path'] is None:
-            print('[BulkEvaluate] No tasks_path for', job['path'])
+        job.setdefault('planner', None)
+        job.setdefault('path', None)
+        label = job['planner'] or job['path']
+        if job['planner'] is not None:
+            if job['planner'] not in OMPL_PLANNERS:
+                print('[BulkEvaluate] Unknown OMPL planner', job['planner'],
+                      '- choose from', OMPL_PLANNERS)
+                exit(1)
+            if job['config'] is None:
+                print('[BulkEvaluate] OMPL planner', job['planner'],
+                      'needs a config')
+                exit(1)
+        elif job['path'] is None:
+            print('[BulkEvaluate] Entry needs "path" or "planner":', entry)
             exit(1)
-        job['name'] = job.get('name') or default_name(job['path'])
+        if job['tasks_path'] is None:
+            print('[BulkEvaluate] No tasks_path for', label)
+            exit(1)
+        if not job.get('name'):
+            job['name'] = default_name(job['path']) if job['planner'] is None                else OMPL_DEFAULT_NAMES.get(
+                    job['planner'], 'ompl_' + job['planner'].lower())
         # Keep detail file names unique within a run
         base_name, i = job['name'], 2
         while job['name'] in names:
@@ -136,6 +164,8 @@ def count_tasks(tasks_path):
 
 
 def run_benchmark(job, benchmark_name):
+    if job['planner'] is not None:
+        return run_ompl_benchmark(job, benchmark_name)
     command = [
         sys.executable, 'main.py',
         '--mode', 'benchmark',
@@ -148,6 +178,22 @@ def run_benchmark(job, benchmark_name):
         command.extend(['--config', job['config']])
     if job['max_time'] is not None:
         command.extend(['--max_time', str(job['max_time'])])
+    if job['gui']:
+        command.append('--gui')
+    print('[BulkEvaluate] Running:', ' '.join(command), flush=True)
+    return subprocess.call(command)
+
+
+def run_ompl_benchmark(job, benchmark_name):
+    # benchmark.py's Logger writes benchmark/<name>.pkl/.csv like main.py
+    command = [
+        sys.executable, 'benchmark.py',
+        '--planner', job['planner'],
+        '--name', benchmark_name,
+        '--config', job['config'],
+        '--tasks_path', job['tasks_path'],
+        '--timeout', str(job['timeout']),
+    ]
     if job['gui']:
         command.append('--gui')
     print('[BulkEvaluate] Running:', ' '.join(command), flush=True)
@@ -225,7 +271,7 @@ if __name__ == "__main__":
     dump(load(open(args.checkpoint_list)),
          open(join(run_dir, '{}_checkpoints.json'.format(stamp)), 'w'),
          indent=4)
-    print('[BulkEvaluate] Run timestamp {} | {} checkpoints | output: {}'
+    print('[BulkEvaluate] Run timestamp {} | {} jobs | output: {}'
           .format(stamp, len(jobs), run_dir), flush=True)
 
     rows = []
@@ -239,7 +285,9 @@ if __name__ == "__main__":
         row = {
             'run_timestamp': stamp,
             'name': job['name'],
-            'checkpoint': job['path'],
+            'method': 'ompl_' + job['planner'] if job['planner']
+            else 'rl_policy',
+            'checkpoint': job['path'] or '',
             'config': job['config'] or '<checkpoint config.json>',
             'tasks_path': job['tasks_path'],
             'task_count': count_tasks(job['tasks_path']),
@@ -247,7 +295,7 @@ if __name__ == "__main__":
         }
 
         start = time()
-        if not exists(job['path']):
+        if job['planner'] is None and not exists(job['path']):
             row['status'] = 'missing_checkpoint'
         else:
             return_code = run_benchmark(job, benchmark_name)

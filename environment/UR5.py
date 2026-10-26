@@ -268,7 +268,8 @@ class UR5:
                  velocity=1.0,
                  enabled=True,
                  acceleration=2.0,
-                 training=True):
+                 training=True,
+                 ee_hitbox='training'):
         self.velocity = velocity
         self.acceleration = acceleration
         self.pose = pose
@@ -282,7 +283,13 @@ class UR5:
         UR5.next_available_color = (UR5.next_available_color + 1)\
             % len(UR5.colors)
         if training:
-            self.body_id = p.loadURDF('assets/ur5/ur5_training.urdf',
+            # ee_hitbox: 'training' collides the end effector as a 14 x 12 x
+            # 8 cm box (what policies are trained with); 'visual' as the
+            # thin cylinder that is drawn.
+            urdf = {'training': 'assets/ur5/ur5_training.urdf',
+                    'visual': 'assets/ur5/ur5_training_visual_ee.urdf'
+                    }[ee_hitbox]
+            self.body_id = p.loadURDF(urdf,
                                       self.pose[0],
                                       self.pose[1],
                                       flags=p.URDF_USE_SELF_COLLISION)

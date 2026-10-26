@@ -94,6 +94,7 @@
     },
     "environment": {
         "action_type": "delta",
+        "ee_hitbox": "visual",
         "min_ur5s_count": 1,
         "max_ur5s_count": 4,
         "obstacles": {

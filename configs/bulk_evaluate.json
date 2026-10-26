@@ -4,11 +4,20 @@
     "num_processes": 10,
     "max_time": 1,
     "checkpoints": [
-        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00682",
+        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00727",
         "runs/obstacle_v7/ckpt_multiarm_motion_planner_00650",
-        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00609",
         "runs/obstacle_v7/ckpt_multiarm_motion_planner_00550",
-        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00500",
-        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00450"
+        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00450",
+        "runs/obstacle_v5/ckpt_multiarm_motion_planner_00992",
+        {
+            "name": "ompl_bitstar",
+            "planner": "BITstar",
+            "timeout": 30
+        },
+        {
+            "name": "ompl_birrt",
+            "planner": "RRTConnect",
+            "timeout": 30
+        }
     ]
 }

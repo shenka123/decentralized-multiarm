@@ -33,7 +33,8 @@ class OMPLWrapper:
             create_ur5s_fn=lambda: create_ur5s(
                 radius=0.8,
                 count=env_config['max_ur5s_count'],
-                speed=env_config['ur5_speed']),
+                speed=env_config['ur5_speed'],
+                ee_hitbox=env_config.get('ee_hitbox', 'training')),
             collision_distance=env_config['collision_distance'],
             all_obs=create_obstacles(env_config['obstacles']))
 

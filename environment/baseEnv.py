@@ -162,7 +162,8 @@ class BaseEnv:
         self.all_ur5s = create_ur5s(
             radius=0.5,
             count=self.max_ur5s_count,
-            speed=env_config['ur5_speed'])
+            speed=env_config['ur5_speed'],
+            ee_hitbox=env_config.get('ee_hitbox', 'training'))
         self.active_ur5s = []
         self.enable_ur5s()
 
