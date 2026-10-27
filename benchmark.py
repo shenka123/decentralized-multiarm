@@ -135,7 +135,10 @@ if __name__ == "__main__":
                     expert_waypoints=np.array(waypoints),
                     expert_config=env_config['expert'])
 
-                env.on_episode_end()
+                # env.step() already ends (and logs) the episode once it
+                # terminates; only end it here if the replay stopped early
+                if not env.terminate_episode:
+                    env.on_episode_end()
 
             result = env.current_episode_score
             benchmark_results.append(result)

@@ -141,8 +141,10 @@ if __name__ == "__main__":
                 expert_config=env_config['expert']
             )
 
-            # on_episode_end scores the run and sends to logger
-            env.on_episode_end()
+            # on_episode_end scores the run and sends to logger; env.step()
+            # already calls it when the episode terminates, so don't log twice
+            if not env.terminate_episode:
+                env.on_episode_end()
 
             result = env.current_episode_score
             benchmark_results.append(result)

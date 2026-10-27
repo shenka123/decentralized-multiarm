@@ -16,5 +16,7 @@ conda activate multiarm
 # Move to project directory
 cd ~/decentralized-multiarm
 
-# Add movement seeds to the evaluation tasks (static tasks are left untouched)
-python obstacleMotionGenerator.py obstacle_evaluate obstacle_evaluate_moving 10
+# Add movement seeds to the evaluation tasks (static tasks are left untouched).
+# "reset" reprocesses every task and overwrites same-name files in
+# tasks/obstacle_evaluate_moving/
+python obstacleMotionGenerator.py obstacle_evaluate obstacle_evaluate_moving 10 reset

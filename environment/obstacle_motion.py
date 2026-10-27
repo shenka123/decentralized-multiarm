@@ -39,6 +39,7 @@ DEFAULT_MOTION = {
     "max_speed": 0.2,
     "amplitude": 0.3,
     "num_terms": 3,
+    "floor": 0.0,
 }
 
 
