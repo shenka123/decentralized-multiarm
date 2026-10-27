@@ -3,10 +3,16 @@
     "config": "configs/evaluate.json",
     "num_processes": 10,
     "max_time": 1,
-    "checkpoints": ["runs/obstacle_v7_2/ckpt_multiarm_motion_planner_00727",
-        "runs/obstacle_v7_2/ckpt_multiarm_motion_planner_00700",
-        "runs/obstacle_v7_2/ckpt_multiarm_motion_planner_00675",
-        "runs/obstacle_v7_2/ckpt_multiarm_motion_planner_00650",
-        "runs/obstacle_v7_2/ckpt_multiarm_motion_planner_00625",
+    "checkpoints": [
+        {
+            "name": "ompl_bitstar",
+            "planner": "BITstar",
+            "timeout": 30
+        },
+        {
+            "name": "ompl_birrt",
+            "planner": "RRTConnect",
+            "timeout": 30
+        },
         "runs/obstacle_v7_2/ckpt_multiarm_motion_planner_00610"]
 }
