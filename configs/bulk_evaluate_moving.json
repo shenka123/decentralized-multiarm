@@ -3,12 +3,10 @@
     "config": "configs/evaluate.json",
     "num_processes": 10,
     "max_time": 1,
-    "checkpoints": [
-        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00682",
-        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00650",
-        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00609",
-        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00550",
-        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00500",
-        "runs/obstacle_v7/ckpt_multiarm_motion_planner_00450"
-    ]
+    "checkpoints": ["runs/obstacle_v7_2/ckpt_multiarm_motion_planner_00727",
+        "runs/obstacle_v7_2/ckpt_multiarm_motion_planner_00700",
+        "runs/obstacle_v7_2/ckpt_multiarm_motion_planner_00675",
+        "runs/obstacle_v7_2/ckpt_multiarm_motion_planner_00650",
+        "runs/obstacle_v7_2/ckpt_multiarm_motion_planner_00625",
+        "runs/obstacle_v7_2/ckpt_multiarm_motion_planner_00610"]
 }
