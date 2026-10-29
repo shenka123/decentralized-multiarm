@@ -18,7 +18,7 @@ cd ~/decentralized-multiarm
 python main.py \
   --mode train \
   --name obstacle_v4 \
-  --config configs/obstacle_v1.json \
+  --config configs/obstacle_v4.json \
   --tasks_path tasks/obstacle_v1 \
   --expert_waypoints experts/obstacle_v1/ \
   --max_time 6 \
