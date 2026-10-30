@@ -100,23 +100,23 @@
         "obstacles": {
             "s1": {
                 "type": "Sphere",
-                "radius": 0.07
+                "radius": 0.1
             },
             "s2": {
                 "type": "Sphere",
-                "radius": 0.07
+                "radius": 0.1
             },
             "s3": {
                 "type": "Sphere",
-                "radius": 0.07
+                "radius": 0.1
             },
             "s4": {
                 "type": "Sphere",
-                "radius": 0.07
+                "radius": 0.1
             },
             "s5": {
                 "type": "Sphere",
-                "radius": 0.07
+                "radius": 0.1
             }
         },
         "task": {
@@ -171,8 +171,8 @@
         "collision_distance": 0.0,
         "stop_ur5_after_reach": false,
         "ur5_speed": 0.02,
-        "position_tolerance": 0.1,
-        "orientation_tolerance": 0.4
+        "position_tolerance": 0.04,
+        "orientation_tolerance": 0.1
     },
     "behaviour-clone": {
         "lr": 0.001,
